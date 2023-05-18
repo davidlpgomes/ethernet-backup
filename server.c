@@ -11,7 +11,7 @@ void server_run() {
     int socket = ConexaoRawSocket("lo");
 
     printf("[ETHBKP] Running as server...\n");
-    unsigned buffer[BUFFER_LEN];
+    char buffer[BUFFER_LEN];
 
     for (;;) {
         printf("[ETHBKP] Waiting message\n");
@@ -21,7 +21,7 @@ void server_run() {
         printf("[ETHBKP] Message received\n");
 
         for (int i = 0; i < BUFFER_LEN; i++)
-            printf("%u", buffer[i]);
+            printf("%c ", buffer[i]);
 
         printf("\n");
     }

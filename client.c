@@ -3,27 +3,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <arpa/inet.h>
 
 #include "ConexaoRawSocket.h"
-
 
 void client_run() {
     int socket = ConexaoRawSocket("lo");
 
     printf("[ETHBKP] Running as client...\n");
-    unsigned buffer[BUFFER_LEN];
+    char buffer[BUFFER_LEN];
 
     for (;;) {
         printf("Escreva a mensagem (%d inteiros): ", BUFFER_LEN);
 
         for (int i = 0; i < BUFFER_LEN; i++)
-            scanf("%u", &buffer[i]);
+            scanf("%c ", &buffer[i]);
 
         printf("[ETHBKP] Sending message\n");
 
-        ssize_t size = send(socket, buffer, BUFFER_LEN, 0);
+        ssize_t size = send(socket, buffer, htons(BUFFER_LEN), 0);
 
-        printf("[ETHBKP] Message sent\n");
+        if (size < 0)
+            printf("Error: %s\n", strerror(errno));
+
+        printf("[ETHBKP] Message sent, size=%ld\n", size);
     }
 
     return;
