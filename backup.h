@@ -2,6 +2,7 @@
 #define BACKUP_H
 
 #define START_MARKER 126
+#define BUFFER_LEN 8
 
 typedef enum message_type_e {
     BACKUP_FILE,
