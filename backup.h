@@ -1,6 +1,8 @@
 #ifndef BACKUP_H
 #define BACKUP_H
 
+#include <sys/types.h>
+
 #define START_MARKER 126
 #define BUFFER_LEN 8
 #define BUFFER_MAX_LEN 64
