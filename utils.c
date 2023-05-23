@@ -4,6 +4,7 @@
 
 #include "utils.h"
 
+
 int max(int a, int b) {
     if (a > b)
         return a;
@@ -33,6 +34,18 @@ void print_buffer(unsigned char* buffer, int size) {
         printf("%c", buffer[i]);
     }
     printf("\n");
+}
+
+void print_message(message_t *message) {
+    printf("start_marker: %c\n", message->start_marker);
+    printf("size: %d\n", message->size);
+    printf("sequence: %d\n", message->sequence);
+    printf("type: %d\n", message->type);
+    printf("data: ");
+    for (int i = 0; i < message->size; i++)
+        printf("%c", message->data[i]);
+    printf("\n");
+    printf("parity: %c\n", message->parity);
 }
 
 double timestamp() {
