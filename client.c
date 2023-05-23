@@ -28,6 +28,7 @@ void client_run() {
         message_t* message = make_message(13, 0, DATA);
 
         message->data = (unsigned char *) malloc(sizeof(unsigned char) * 13);
+        memcpy(message->data, buffer, BUFFER_LEN);
 
 
         ssize_t size = send_message(socket, message);

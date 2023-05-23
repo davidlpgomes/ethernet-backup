@@ -34,7 +34,7 @@ int ConexaoRawSocket(char *device)
   memset(&endereco, 0, sizeof(endereco)); 	/*IP do dispositivo*/
   endereco.sll_family = AF_PACKET;
   endereco.sll_protocol = htons(ETH_P_ALL);
-  endereco.sll_ifindex = ir.ifr_ifindex;
+  endereco.sll_ifindex = ir.ifr_ifindex; // 2
   if (bind(soquete, (struct sockaddr *)&endereco, sizeof(endereco)) == -1) {
     printf("Erro no bind\n");
     exit(-1);

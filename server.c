@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 
+#include "utils.h"
 #include "ConexaoRawSocket.h"
 
 
@@ -19,6 +20,7 @@ void server_run() {
         printf("[ETHBKP] Waiting message\n");
 
         ssize_t size = recv(socket, buffer, htons(BUFFER_MAX_LEN), 0);
+        print_buffer(buffer, BUFFER_MAX_LEN);
 
         message_t* message = buffer_to_message(buffer);
 

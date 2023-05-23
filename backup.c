@@ -1,4 +1,5 @@
 #include "backup.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <arpa/inet.h>
 
@@ -19,6 +20,7 @@ void destroy_message(message_t* message) {
 ssize_t send_message(int socket, message_t* message) {
     int buffer_size = message->size + 4;
     unsigned char* buffer = message_to_buffer(message);
+    print_buffer(buffer, buffer_size);
 
     ssize_t size = send(socket, buffer, htons(buffer_size), 0);
 

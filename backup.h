@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 #define START_MARKER 126
-#define BUFFER_LEN 8
+#define BUFFER_LEN 13
 #define BUFFER_MAX_LEN 64
 
 typedef enum message_type_e {
