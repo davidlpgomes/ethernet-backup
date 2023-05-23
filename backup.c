@@ -1,7 +1,63 @@
 #include "backup.h"
+#include <stdlib.h>
+#include <arpa/inet.h>
 
-void send_message(message_t* message) {
-    return;
+message_t* make_message(unsigned char size, unsigned char sequence, message_type_e type) {
+    message_t* message = (message_t *) malloc(sizeof(message_t));
+
+    message->start_marker = START_MARKER;
+    message->size = size;
+    message->sequence = sequence;
+    message->type = type;
+    return message;
+}
+
+void destroy_message(message_t* message) {
+    free(message);
+}
+
+ssize_t send_message(int socket, message_t* message) {
+    int buffer_size = message->size + 4;
+    unsigned char* buffer = message_to_buffer(message);
+
+    ssize_t size = send(socket, buffer, htons(buffer_size), 0);
+
+    free(buffer);
+
+    return size;
+}
+
+unsigned char* message_to_buffer(message_t* message) {
+    int buffer_size = message->size + 4;
+    unsigned char* buffer = (unsigned char *) malloc(sizeof(unsigned char) * buffer_size);
+
+    buffer[0] = message->start_marker;
+    buffer[1] = (message->size << 2) + (message->sequence >> 4);
+    buffer[2] = message->type + (message->sequence << 4);
+
+    for (int i = 0; i < message->size; i++)
+        buffer[i + 3] = message->data[i];
+
+    buffer[buffer_size - 1] = message->parity;
+
+    return buffer;
+} 
+
+message_t* buffer_to_message(unsigned char* buffer) {
+    message_t* message = (message_t *) malloc(sizeof(message_t));
+
+    message->start_marker = buffer[0];
+    message->size = buffer[1] >> 2;
+    message->sequence = (buffer[1] << 4) + (buffer[2] >> 4);
+    message->type = (buffer[2] << 4) >> 4;
+    message->data = (unsigned char *) malloc(sizeof(unsigned char) * message->size);
+
+    for (int i = 0; i < message->size; i++)
+        message->data[i] = buffer[i + 3];
+
+    message->parity = buffer[message->size + 3];
+
+    return message;
 }
 
 void get_file_md5() {

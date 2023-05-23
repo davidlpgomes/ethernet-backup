@@ -14,7 +14,7 @@ void client_run() {
     int socket = ConexaoRawSocket("lo");
 
     printf("[ETHBKP] Running as client...\n");
-    char buffer[BUFFER_LEN];
+    unsigned char buffer[BUFFER_LEN];
 
     for (;;) {
         printf("Escreva a mensagem (%d inteiros): ", BUFFER_LEN);
@@ -24,7 +24,15 @@ void client_run() {
 
         printf("[ETHBKP] Sending message\n");
 
-        ssize_t size = send(socket, buffer, htons(BUFFER_LEN), 0);
+        message_t* message = make_message(13, 0, DATA);
+
+        message->data = (unsigned char *) malloc(sizeof(unsigned char) * 13);
+
+
+        ssize_t size = send_message(socket, message);
+
+        free(message->data);
+        destroy_message(message);
 
         if (size < 0)
             printf("Error: %s\n", strerror(errno));

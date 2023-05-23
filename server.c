@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "ConexaoRawSocket.h"
 
@@ -11,17 +12,19 @@ void server_run() {
     int socket = ConexaoRawSocket("lo");
 
     printf("[ETHBKP] Running as server...\n");
-    char buffer[BUFFER_LEN];
+    unsigned char buffer[BUFFER_MAX_LEN];
 
     for (;;) {
         printf("[ETHBKP] Waiting message\n");
 
-        ssize_t size = recv(socket, buffer, BUFFER_LEN, 0);
+        ssize_t size = recv(socket, buffer, htons(BUFFER_MAX_LEN), 0);
+
+        message_t* message = buffer_to_message(buffer);
 
         printf("[ETHBKP] Message received\n");
 
-        for (int i = 0; i < BUFFER_LEN; i++)
-            printf("%c ", buffer[i]);
+        for (int i = 0; i < message->size; i++)
+            printf("%c ", message->data[i]);
 
         printf("\n");
     }
