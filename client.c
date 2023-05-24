@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 
 #include "ConexaoRawSocket.h"
+#include "utils.h"
 
 void client_run() {
     int socket = ConexaoRawSocket("lo");
@@ -29,6 +30,8 @@ void client_run() {
 
         message->data = (unsigned char *) malloc(sizeof(unsigned char) * 13);
         memcpy(message->data, buffer, BUFFER_LEN);
+
+        print_message(message);
 
 
         ssize_t size = send_message(socket, message);

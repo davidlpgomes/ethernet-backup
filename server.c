@@ -26,10 +26,7 @@ void server_run() {
 
         printf("[ETHBKP] Message received\n");
 
-        for (int i = 0; i < message->size; i++)
-            printf("%c ", message->data[i]);
-
-        printf("\n");
+        print_message(message);
     }
 
     return;
