@@ -50,8 +50,8 @@ message_t* buffer_to_message(unsigned char* buffer) {
 
     message->start_marker = buffer[0];
     message->size = buffer[1] >> 2;
-    message->sequence = (buffer[1] << 4) + (buffer[2] >> 4);
-    message->type = (buffer[2] << 4) >> 4;
+    message->sequence = ((buffer[1] & 0b11) << 4) + (buffer[2] >> 4);
+    message->type = buffer[2] & 0b1111;
     message->data = (unsigned char *) malloc(sizeof(unsigned char) * message->size);
 
     for (int i = 0; i < message->size; i++)

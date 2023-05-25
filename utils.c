@@ -31,7 +31,11 @@ void test_alloc(void* p, char* name) {
 
 void print_buffer(unsigned char* buffer, int size) {
     for (int i = 0; i < size; i++) {
-        printf("%c", buffer[i]);
+        printf("buffer[%d]: ", i);
+        for (int j = 7; j >= 0; j--) {
+            printf("%c", (buffer[i] & (1 << j)) ? '1' : '0');
+        }
+        printf("\n");
     }
     printf("\n");
 }

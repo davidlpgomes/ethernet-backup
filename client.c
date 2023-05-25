@@ -26,9 +26,9 @@ void client_run() {
 
         printf("[ETHBKP] Sending message\n");
 
-        message_t* message = make_message(13, 0, DATA);
+        message_t* message = make_message(BUFFER_LEN, 24, DATA);
 
-        message->data = (unsigned char *) malloc(sizeof(unsigned char) * 13);
+        message->data = (unsigned char *) malloc(sizeof(unsigned char) * BUFFER_LEN);
         memcpy(message->data, buffer, BUFFER_LEN);
 
         print_message(message);
