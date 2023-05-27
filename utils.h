@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#define STR_LEN 1024
+
 #include "backup.h"
 
 int max(int a, int b);
