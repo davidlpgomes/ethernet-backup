@@ -29,7 +29,7 @@ void server_run() {
 
         buffer_to_message(buffer, message);
 
-        if (message->start_marker == START_MARKER) {
+        if (check_parity(buffer, message->size + 4) && message->start_marker == START_MARKER) {
             printf("[ETHBKP] Message received\n");
             print_message(message);
         }

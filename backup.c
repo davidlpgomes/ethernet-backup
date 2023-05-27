@@ -98,3 +98,12 @@ void set_message_parity(message_t* message) {
 
     message->parity = sum;
 }
+
+int check_parity(unsigned char* buffer, int buffer_size) {
+    unsigned char sum = buffer[1];
+    for (int i = 2; i < buffer_size; i++) {
+        sum ^= buffer[i];
+    }
+
+    return sum == 0;
+}

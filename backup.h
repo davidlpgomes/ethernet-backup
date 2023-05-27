@@ -58,5 +58,7 @@ void get_file_md5();
 
 void set_message_parity(message_t* message);
 
+int check_parity(unsigned char* buffer, int buffer_size);
+
 #endif
 
