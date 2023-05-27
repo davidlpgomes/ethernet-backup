@@ -16,18 +16,26 @@ void server_run() {
     printf("[ETHBKP] Running as server...\n");
     unsigned char buffer[BUFFER_MAX_LEN];
 
+    message_t* message = create_message();
+
     for (;;) {
         printf("[ETHBKP] Waiting message\n");
 
         ssize_t size = recv(socket, buffer, htons(BUFFER_MAX_LEN), 0);
+
+        #if DEBUG
         print_buffer(buffer, BUFFER_MAX_LEN);
+        #endif
 
-        message_t* message = buffer_to_message(buffer);
+        buffer_to_message(buffer, message);
 
-        printf("[ETHBKP] Message received\n");
-
-        print_message(message);
+        if (message->start_marker == START_MARKER) {
+            printf("[ETHBKP] Message received\n");
+            print_message(message);
+        }
     }
+
+    free(message);
 
     return;
 }

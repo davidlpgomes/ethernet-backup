@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 #define START_MARKER 126
-#define BUFFER_LEN 2
+#define DATA_MAX_LEN 63
 #define BUFFER_MAX_LEN 67
 
 typedef enum message_type_e {
@@ -42,15 +42,17 @@ typedef struct message_t {
     unsigned char parity;
 } message_t;
 
-message_t* make_message(unsigned char size, unsigned char sequence, message_type_e type);
+message_t* create_message();
+
+void make_backup_message(message_t* message, char* file_name);
 
 void destroy_message(message_t* message);
 
 ssize_t send_message(int socket, message_t* message);
 
-unsigned char* message_to_buffer(message_t* message);
+void message_to_buffer(message_t* message, unsigned char* buffer);
 
-message_t* buffer_to_message(unsigned char* buffer);
+void buffer_to_message(unsigned char* buffer, message_t* message);
 
 void get_file_md5();
 
