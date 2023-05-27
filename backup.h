@@ -42,6 +42,20 @@ typedef struct message_t {
     unsigned char parity;
 } message_t;
 
+typedef struct backup_t {
+    int socket;
+    unsigned char sequence;
+    unsigned char* buffer;
+    message_t* message;
+} backup_t;
+
+
+int create_socket();
+
+backup_t* create_backup();
+
+void free_backup(backup_t* backup);
+
 message_t* create_message();
 
 void make_backup_message(message_t* message, char* file_name, int sequence);

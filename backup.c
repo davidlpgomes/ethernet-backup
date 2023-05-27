@@ -1,18 +1,70 @@
 #include "backup.h"
-#include "utils.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+
+#include "ConexaoRawSocket.h"
+#include "utils.h"
+
+
+int create_socket() {
+    int socket = ConexaoRawSocket("lo");
+
+    return socket;
+}
+
+backup_t* create_backup() {
+    backup_t* backup = malloc(sizeof(backup_t));
+    test_alloc(backup, "backup");
+
+    backup->socket = create_socket();
+    backup->sequence = 0;
+
+    backup->buffer = malloc(sizeof(unsigned char*) * BUFFER_MAX_LEN);
+    test_alloc(backup->buffer, "backup buffer");
+
+    backup->message = create_message();
+
+    return backup;
+}
+
+void free_backup(backup_t* backup) {
+    if (!backup)
+        return;
+
+    if (backup->buffer)
+        free(backup->buffer);
+
+    if (backup->message)
+        free(backup->message);
+
+    free(backup);
+
+    return;
+}
 
 message_t* create_message() {
     message_t* message = (message_t *) malloc(sizeof(message_t));
     test_alloc(message, "message");
 
+    message->start_marker = START_MARKER;
+
     return message;
 }
 
+void message_clear(message_t* message) {
+    message->start_marker = START_MARKER;
+
+    if (message->data)
+        free(message->data);
+
+    return;
+}
+
 void make_backup_message(message_t* message, char* file_name, int sequence) {
-    if (message->data) free(message->data);
+    if (message->data)
+        free(message->data);
 
     int name_len = strlen(file_name);
 
@@ -23,9 +75,12 @@ void make_backup_message(message_t* message, char* file_name, int sequence) {
 
     message->data = (unsigned char *) malloc(sizeof(unsigned char) * name_len);
     test_alloc(message->data, "message->data");
+
     memcpy(message->data, file_name, name_len);
 
     set_message_parity(message);
+
+    return;
 }
 
 void make_ack_message(message_t* message) {
@@ -47,7 +102,15 @@ void make_nack_message(message_t* message) {
 }
 
 void destroy_message(message_t* message) {
+    if (!message)
+        return;
+
+    if (message->data)
+        free(message->data);
+
     free(message);
+
+    return;
 }
 
 ssize_t send_message(int socket, message_t* message) {
