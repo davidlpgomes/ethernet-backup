@@ -19,13 +19,13 @@ int main(int argc, char** argv) {
                 run_mode = 1;
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-c] [-s]", argv[0]);
+                fprintf(stderr, "Usage: %s [-c] [-s]\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
 
     if (run_mode < 0) {
-        fprintf(stderr, "Usage: %s [-c] [-s]", argv[0]);
+        fprintf(stderr, "Usage: %s [-c] [-s]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
    
