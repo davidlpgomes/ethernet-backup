@@ -17,6 +17,7 @@ void server_run() {
     unsigned char buffer[BUFFER_MAX_LEN];
 
     message_t* message = create_message();
+    int sequence = 0;
 
     for (;;) {
         printf("[ETHBKP] Waiting message\n");
@@ -29,9 +30,19 @@ void server_run() {
 
         buffer_to_message(buffer, message);
 
-        if (check_parity(buffer, message->size + 4) && message->start_marker == START_MARKER) {
-            printf("[ETHBKP] Message received\n");
-            print_message(message);
+        if (message->start_marker == START_MARKER) {
+            if (check_parity(buffer, message->size + 4)) {
+                if (message->sequence == sequence) {
+                    printf("[ETHBKP] Message received\n");
+                    print_message(message);
+                    sequence++;
+                    make_ack_message(message);
+                    send_message(socket, message);
+                }
+            } else {
+                make_nack_message(message);
+                send_message(socket, message);
+            }
         }
     }
 

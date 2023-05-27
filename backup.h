@@ -44,7 +44,9 @@ typedef struct message_t {
 
 message_t* create_message();
 
-void make_backup_message(message_t* message, char* file_name);
+void make_backup_message(message_t* message, char* file_name, int sequence);
+void make_ack_message(message_t* message);
+void make_nack_message(message_t* message);
 
 void destroy_message(message_t* message);
 

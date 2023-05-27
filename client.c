@@ -16,10 +16,11 @@ void client_run() {
     int socket = ConexaoRawSocket("lo");
 
     printf("[ETHBKP] Running as client...\n");
-    unsigned char data_buffer[DATA_MAX_LEN];
+    unsigned char rec_buffer[BUFFER_MAX_LEN];
     char file_name[DATA_MAX_LEN];
 
     message_t* message = create_message();
+    int sequence = 0;
 
     for (;;) {
         printf("[ETHBKP] Type file name: ");
@@ -31,16 +32,20 @@ void client_run() {
             continue;
         }
 
-        make_backup_message(message, file_name);        
+        make_backup_message(message, file_name, sequence);        
 
         print_message(message);
 
         ssize_t size = send_message(socket, message);
-
         if (size < 0)
             printf("Error: %s\n", strerror(errno));
 
         printf("[ETHBKP] Message sent, size=%ld\n", size);
+
+        recv(socket, rec_buffer, htons(BUFFER_MAX_LEN), 0);
+
+
+
     }
 
     destroy_message(message);

@@ -11,19 +11,39 @@ message_t* create_message() {
     return message;
 }
 
-void make_backup_message(message_t* message, char* file_name) {
+void make_backup_message(message_t* message, char* file_name, int sequence) {
     if (message->data) free(message->data);
 
     int name_len = strlen(file_name);
 
     message->start_marker = START_MARKER;
     message->size = name_len;
+    message->sequence = sequence;
+    message->type = BACKUP_FILE;
+
     message->data = (unsigned char *) malloc(sizeof(unsigned char) * name_len);
     test_alloc(message->data, "message->data");
-
     memcpy(message->data, file_name, name_len);
 
     set_message_parity(message);
+}
+
+void make_ack_message(message_t* message) {
+    if (message->data) free(message->data);
+
+    message->start_marker = START_MARKER;
+    message->size = 0;
+    message->type = ACK;
+    message->data = NULL;
+}
+
+void make_nack_message(message_t* message) {
+    if (message->data) free(message->data);
+
+    message->start_marker = START_MARKER;
+    message->size = 0;
+    message->type = ACK;
+    message->data = NULL;
 }
 
 void destroy_message(message_t* message) {
