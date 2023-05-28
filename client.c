@@ -135,16 +135,18 @@ void client_backup(backup_t* backup, char *path) {
     printf("[ETHBKP] Command: backup\n");
     #endif
 
-    FILE* file = fopen(path, "r");
+    FILE* file = fopen(path, "rb");
 
     if (!file) {
         printf("Erro ao abrir arquivo: %s\n", strerror(errno));
         return;
     }
 
-    make_backup_message(backup, path);        
+    make_backup_message(backup, path);   
 
+    #ifdef DEBUG
     print_message(backup->send_message);
+    #endif
 
     ssize_t size = send_message(backup);
 

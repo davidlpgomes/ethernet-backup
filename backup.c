@@ -5,6 +5,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <libgen.h>
 #include <errno.h>
 #include <limits.h>
 
@@ -119,7 +120,9 @@ void make_backup_message(backup_t *backup, char *path) {
 
     message_reset(m);
 
-    int name_len = strlen(path);
+    char *name = basename(path);
+
+    int name_len = strlen(name);
 
     m->size = name_len;
     m->sequence = backup->sequence;
@@ -128,7 +131,7 @@ void make_backup_message(backup_t *backup, char *path) {
     m->data = malloc(sizeof(unsigned char) * name_len);
     test_alloc(m->data, "backup message data");
 
-    memcpy(m->data, path, name_len);
+    memcpy(m->data, name, name_len);
 
     set_message_parity(m);
 
@@ -203,44 +206,29 @@ ssize_t send_message(backup_t *backup) {
 }
 
 ssize_t receive_message(backup_t *backup) {
-    if (!backup)
-        return -1;
-
+    ssize_t size;
     message_t *m = backup->recv_message;
+    int valid_message;
 
-    #ifdef DEBUG
-    printf("[ETHBKP][RCVM] Waiting message\n");
-    #endif
+    for(;;) {
+        size = recv(backup->socket, backup->recv_buffer, BUFFER_MAX_LEN, 0);
 
-    ssize_t size = -1;
-    int has_valid_parity = 0;
-
-    while (!has_valid_parity) {
-        while (size == -1)
-            size = recv(
-                backup->socket,
-                backup->recv_buffer,
-                BUFFER_MAX_LEN,
-                0
-            );
+        if (size == -1 || backup->recv_buffer[0] != START_MARKER) 
+            continue;
 
         buffer_to_message(backup->recv_buffer, m);
-
-        #ifdef DEBUG
-        printf("[ETHBKP][RCVM] Message received\n");
-        print_message(m); 
-        #endif
-
-        if (backup->recv_buffer[0] != START_MARKER)
-            continue;
 
         if (m->sequence != backup->sequence)
             continue;
 
-        // has_valid_parity = check_parity_message(m);
-        has_valid_parity = 1;
-        send_acknowledgement(backup, 1);
-    }
+        print_message(backup->recv_message);
+
+        valid_message = check_message_parity(m);
+        send_acknowledgement(backup, valid_message);
+        
+        if (valid_message)
+            break; 
+    };
 
     return size;
 }

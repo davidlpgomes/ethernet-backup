@@ -28,7 +28,6 @@ void server_run() {
         size = receive_message(backup);
 
         printf("[ETHBKP] Message received, size=%zi\n", size);
-        // print_message(m);
 
         sequence = (sequence + 1) % 64;
         backup->sequence = sequence;
