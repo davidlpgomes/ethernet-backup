@@ -88,7 +88,7 @@ message_t *create_message() {
     return message;
 }
 
-void free_message(message_t* message) {
+void free_message(message_t *message) {
     if (!message)
         return;
 
@@ -100,7 +100,7 @@ void free_message(message_t* message) {
     return;
 }
 
-void message_reset(message_t* message) {
+void message_reset(message_t *message) {
     if (!message)
         return;
 
@@ -111,6 +111,23 @@ void message_reset(message_t* message) {
 
     message->size = 0;
     message->data = NULL;
+
+    return;
+}
+
+void make_reset_sequence_message(backup_t *backup) {
+    if (!backup)
+        return;
+
+    message_t *m = backup->send_message;
+
+    backup->sequence = 0;
+
+    message_reset(m);
+    m->type = RESET_SEQUENCE;
+    m->sequence = backup->sequence;
+
+    set_message_parity(m);
 
     return;
 }
@@ -170,6 +187,12 @@ void send_acknowledgement(backup_t *backup, int is_ack) {
     return;
 }
 
+void update_sequence(backup_t *backup) {
+    backup->sequence = (backup->sequence + 1) % 64;
+
+    return;
+}
+
 ssize_t send_message(backup_t *backup) {
     if (!backup)
         return -1;
@@ -200,7 +223,7 @@ ssize_t send_message(backup_t *backup) {
         #endif
     }
 
-    backup->sequence = (backup->sequence + 1) % 64;
+    update_sequence(backup);
 
     return size;
 }
@@ -208,9 +231,10 @@ ssize_t send_message(backup_t *backup) {
 ssize_t receive_message(backup_t *backup) {
     ssize_t size;
     message_t *m = backup->recv_message;
+
     int valid_message;
 
-    for(;;) {
+    for (;;) {
         size = recv(backup->socket, backup->recv_buffer, BUFFER_MAX_LEN, 0);
 
         if (size == -1 || backup->recv_buffer[0] != START_MARKER) 
@@ -218,10 +242,16 @@ ssize_t receive_message(backup_t *backup) {
 
         buffer_to_message(backup->recv_buffer, m);
 
-        if (m->sequence != backup->sequence)
+        if (
+            m->type != RESET_SEQUENCE &&
+            m->sequence != backup->sequence
+        )
             continue;
 
+        #ifdef DEBUG
+        printf("[ETHBKP][RCVM] Message received: ");
         print_message(backup->recv_message);
+        #endif
 
         valid_message = check_message_parity(m);
         send_acknowledgement(backup, valid_message);
@@ -229,6 +259,11 @@ ssize_t receive_message(backup_t *backup) {
         if (valid_message)
             break; 
     };
+
+    if (m->type == RESET_SEQUENCE) 
+        backup->sequence = 1;
+    else
+        update_sequence(backup);
 
     return size;
 }

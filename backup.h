@@ -23,7 +23,7 @@ typedef enum message_type_e {
     DATA = 0b1000,
     END_FILE = 0b1001,
     END_FILES = 0b1010,
-    NOT_USED = 0b1011,
+    RESET_SEQUENCE = 0b1011,
     ERROR = 0b1100,
     OK = 0b1101,
     ACK = 0b1110,
@@ -70,11 +70,17 @@ void free_message(message_t *message);
 
 void message_reset(message_t *message);
 
+void make_reset_sequence_message(backup_t *backup);
+
 void make_backup_message(backup_t *backup, char *path);
 
 void make_ack_message(message_t *message);
 
 void make_nack_message(message_t *message);
+
+void send_acknowledgement(backup_t *backup, int is_ack);
+
+void update_sequence(backup_t *backup);
 
 ssize_t send_message(backup_t *backup);
 
