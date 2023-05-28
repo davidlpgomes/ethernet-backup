@@ -361,7 +361,7 @@ void set_message_parity(message_t* message) {
     return;
 }
 
-int check_parity_message(message_t *message) {
+int check_message_parity(message_t *message) {
     int buffer_size = message->size + MESSAGE_CAPSULE_SIZE;
 
     unsigned char* buffer = malloc(sizeof(unsigned char) * buffer_size);
