@@ -20,19 +20,16 @@ void server_run() {
     message_t *m = backup->recv_message;
     ssize_t size;
 
-    unsigned char sequence = 0;
-
     for (;;) {
         printf("- Waiting message\n");
 
         size = receive_message(backup);
-
         printf("[ETHBKP] Message received, size=%zi\n", size);
 
-        sequence = (sequence + 1) % 64;
-        backup->sequence = sequence;
-
-        sleep(2);
+        switch (backup->recv_message->type) {
+            default:
+                break;
+        }
     }
 
     free_backup(backup);
