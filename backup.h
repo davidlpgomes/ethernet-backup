@@ -4,9 +4,12 @@
 #include <sys/types.h>
 
 #define START_MARKER 126
+#define MESSAGE_CAPSULE_SIZE 4
+
 #define DATA_MAX_LEN 63
 #define BUFFER_MAX_LEN 67
-#define MESSAGE_CAPSULE_SIZE 4
+
+#define TIMEOUT 1
 
 typedef enum message_type_e {
     BACKUP_FILE = 0b0000,
@@ -46,7 +49,11 @@ typedef struct message_t {
 typedef struct backup_t {
     int socket;
     unsigned char sequence;
-    message_t *message;
+
+    message_t *send_message;
+    message_t *recv_message;
+
+    unsigned char* send_buffer;
     unsigned char* recv_buffer;
 } backup_t;
 
@@ -72,6 +79,8 @@ void make_nack_message(message_t *message);
 ssize_t send_message(backup_t *backup);
 
 ssize_t receive_message(backup_t *backup);
+
+int wait_acknowledgement(backup_t *backup);
 
 void message_to_buffer(message_t *message, unsigned char *buffer);
 
