@@ -2,51 +2,53 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 
+#include "backup.h"
 #include "utils.h"
 #include "ConexaoRawSocket.h"
 
 
 void server_run() {
-    int socket = ConexaoRawSocket("lo");
-
+    #ifdef DEBUG
     printf("[ETHBKP] Running as server...\n");
-    unsigned char buffer[BUFFER_MAX_LEN];
+    #endif
 
-    message_t* message = create_message();
-    int sequence = 0;
+    backup_t *backup = create_backup();
+    message_t *m = backup->message;
+    ssize_t size;
+
+    unsigned char sequence = 0;
 
     for (;;) {
-        printf("[ETHBKP] Waiting message\n");
+        printf("- Waiting message\n");
 
-        ssize_t size = recv(socket, buffer, htons(BUFFER_MAX_LEN), 0);
+        size = receive_message(backup);
 
-        #if DEBUG
-        print_buffer(buffer, BUFFER_MAX_LEN);
-        #endif
+        return;
 
-        buffer_to_message(buffer, message);
+        if (m->start_marker != START_MARKER)
+            continue;
 
-        if (message->start_marker == START_MARKER) {
-            if (check_parity(buffer, message->size + 4)) {
-                if (message->sequence == sequence) {
-                    printf("[ETHBKP] Message received\n");
-                    print_message(message);
-                    sequence++;
-                    make_ack_message(message);
-                    send_message(socket, message);
-                }
-            } else {
-                make_nack_message(message);
-                send_message(socket, message);
-            }
+        if (check_parity_message(m)) {
+            if (m->sequence != sequence)
+                printf("ERROR: SEQUENCE IS DIFFERENT\n");
+
+            printf("[ETHBKP] Message received\n");
+            print_message(m);
+
+            sequence = (sequence + 1) % 64;
+
+            make_ack_message(m);
+            send_message(backup);
+        } else {
+            make_nack_message(m);
+            send_message(backup);
         }
     }
 
-    free(message);
+    free_backup(backup);
 
     return;
 }
