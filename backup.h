@@ -74,6 +74,12 @@ void make_reset_sequence_message(backup_t *backup);
 
 void make_backup_message(backup_t *backup, char *path);
 
+void make_backup_data_message(
+    backup_t *backup,
+    unsigned char *data,
+    unsigned data_size
+);
+
 void make_ack_message(message_t *message);
 
 void make_nack_message(message_t *message);
@@ -91,6 +97,8 @@ int wait_acknowledgement(backup_t *backup);
 void message_to_buffer(message_t *message, unsigned char *buffer);
 
 void buffer_to_message(unsigned char *buffer, message_t *message);
+
+void send_file(backup_t *backup, char *path);
 
 void get_file_md5();
 

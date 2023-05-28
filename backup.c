@@ -133,7 +133,10 @@ void make_reset_sequence_message(backup_t *backup) {
 }
 
 void make_backup_message(backup_t *backup, char *path) {
-    message_t* m = backup->send_message;
+    if (!backup || !path)
+        return;
+
+    message_t *m = backup->send_message;
 
     message_reset(m);
 
@@ -146,9 +149,34 @@ void make_backup_message(backup_t *backup, char *path) {
     m->type = BACKUP_FILE;
 
     m->data = malloc(sizeof(unsigned char) * name_len);
-    test_alloc(m->data, "backup message data");
+    test_alloc(m->data, "backup message file name");
 
     memcpy(m->data, name, name_len);
+
+    set_message_parity(m);
+
+    return;
+}
+
+void make_backup_data_message(
+    backup_t *backup,
+    unsigned char *data,
+    unsigned data_size
+) {
+    if (!backup || !data)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    m->size = data_size;
+    m->sequence = backup->sequence;
+    m->type = BACKUP_FILE;
+
+    m->data = malloc(sizeof(unsigned char) * data_size);
+    test_alloc(m->data, "backup message data");
+
+    memcpy(m->data, data, data_size);
 
     set_message_parity(m);
 
@@ -365,6 +393,46 @@ void buffer_to_message(unsigned char *buffer, message_t *message) {
     }
 
     message->parity = buffer[message->size + 3];
+
+    return;
+}
+
+void send_file(backup_t *backup, char *path) {
+    if (!backup || !path)
+        return;
+
+    FILE *file = fopen(path, "rb");
+
+    if (!file) {
+        fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));
+        return;
+    }
+
+    // Sending file name
+    make_backup_message(backup, path);
+    ssize_t size = send_message(backup);
+
+    if (size < 0) {
+        printf("Error: %s\n", strerror(errno));
+        return;
+    }
+
+    int buffer_size = DATA_MAX_LEN;
+    unsigned char *buffer = malloc(sizeof(unsigned char) * DATA_MAX_LEN);
+    test_alloc(buffer, "client backup file buffer");
+
+    ssize_t size_data;
+    while (!feof(file)) {
+        buffer_size = fread(buffer, sizeof(*buffer), DATA_MAX_LEN, file);
+        make_backup_data_message(backup, buffer, buffer_size);
+        
+        size_data = send_message(backup);
+
+        if (size_data < 0)
+            printf("Error: %s\n", strerror(errno));
+    }
+
+    fclose(file);
 
     return;
 }
