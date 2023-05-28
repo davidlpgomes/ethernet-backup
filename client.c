@@ -144,7 +144,7 @@ void client_backup(backup_t* backup, char *path) {
 
     make_backup_message(backup, path);        
 
-    print_message(backup->message);
+    print_message(backup->send_message);
 
     ssize_t size = send_message(backup);
 
@@ -154,8 +154,6 @@ void client_backup(backup_t* backup, char *path) {
     #ifdef DEBUG
     printf("[ETHBKP] Message sent, size=%ld\n", size);
     #endif
-
-    // recv(backup->socket, backup->buffer, htons(BUFFER_MAX_LEN), 0);
 
     return;
 }
