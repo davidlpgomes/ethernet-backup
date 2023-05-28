@@ -7,6 +7,9 @@
 
 
 int main(int argc, char** argv) {
+    // Disable buffer for stdout
+    setvbuf(stdout, 0, _IONBF, 0);
+
     int run_mode = -1; // 0 -> CLIENT, 1 -> SERVER
     
     int opt;
