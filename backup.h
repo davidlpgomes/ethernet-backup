@@ -6,6 +6,7 @@
 #define START_MARKER 126
 #define DATA_MAX_LEN 63
 #define BUFFER_MAX_LEN 67
+#define MESSAGE_CAPSULE_SIZE 4
 
 typedef enum message_type_e {
     BACKUP_FILE = 0b0000,
@@ -34,47 +35,55 @@ typedef enum eth_error_e {
 } eth_error_e;
 
 typedef struct message_t {
-    unsigned char start_marker;
-    unsigned char size;
-    unsigned char sequence;
-    message_type_e type;
-    unsigned char* data;
-    unsigned char parity;
+    unsigned char start_marker; // 8 bits
+    unsigned char size;         // 6 bits
+    unsigned char sequence;     // 6 bits
+    message_type_e type;        // 4 bits
+    unsigned char *data;        // 0-63 bytes
+    unsigned char parity;       // 8 bits 
 } message_t;
 
 typedef struct backup_t {
     int socket;
     unsigned char sequence;
-    unsigned char* buffer;
-    message_t* message;
+    message_t *message;
+    unsigned char* recv_buffer;
 } backup_t;
 
 
 int create_socket();
 
-backup_t* create_backup();
+backup_t *create_backup();
 
-void free_backup(backup_t* backup);
+void free_backup(backup_t *backup);
 
 message_t* create_message();
 
-void make_backup_message(message_t* message, char* file_name, int sequence);
-void make_ack_message(message_t* message);
-void make_nack_message(message_t* message);
+void free_message(message_t *message);
 
-void destroy_message(message_t* message);
+void message_reset(message_t *message);
 
-ssize_t send_message(int socket, message_t* message);
+void make_backup_message(backup_t *backup, char *path);
 
-void message_to_buffer(message_t* message, unsigned char* buffer);
+void make_ack_message(message_t *message);
 
-void buffer_to_message(unsigned char* buffer, message_t* message);
+void make_nack_message(message_t *message);
+
+ssize_t send_message(backup_t *backup);
+
+ssize_t receive_message(backup_t *backup);
+
+void message_to_buffer(message_t *message, unsigned char *buffer);
+
+void buffer_to_message(unsigned char *buffer, message_t *message);
 
 void get_file_md5();
 
-void set_message_parity(message_t* message);
+void set_message_parity(message_t *message);
 
-int check_parity(unsigned char* buffer, int buffer_size);
+int check_parity_message(message_t *message);
+
+int check_parity(unsigned char *buffer, int buffer_size);
 
 #endif
 
