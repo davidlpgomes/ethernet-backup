@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include "backup.h"
 #include "utils.h"
@@ -16,7 +17,7 @@ void server_run() {
     #endif
 
     backup_t *backup = create_backup();
-    message_t *m = backup->message;
+    message_t *m = backup->recv_message;
     ssize_t size;
 
     unsigned char sequence = 0;
@@ -26,26 +27,13 @@ void server_run() {
 
         size = receive_message(backup);
 
-        return;
+        printf("[ETHBKP] Message received, size=%zi\n", size);
+        // print_message(m);
 
-        if (m->start_marker != START_MARKER)
-            continue;
+        sequence = (sequence + 1) % 64;
+        backup->sequence = sequence;
 
-        if (check_parity_message(m)) {
-            if (m->sequence != sequence)
-                printf("ERROR: SEQUENCE IS DIFFERENT\n");
-
-            printf("[ETHBKP] Message received\n");
-            print_message(m);
-
-            sequence = (sequence + 1) % 64;
-
-            make_ack_message(m);
-            send_message(backup);
-        } else {
-            make_nack_message(m);
-            send_message(backup);
-        }
+        sleep(2);
     }
 
     free_backup(backup);
