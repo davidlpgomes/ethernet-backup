@@ -18,6 +18,7 @@ void client_run() {
     #endif
 
     backup_t *backup = create_backup();
+    reset_server_sequence(backup);
 
     char *command = malloc(sizeof(char) * STR_LEN);
     test_alloc(command, "command");
@@ -130,6 +131,26 @@ commands_enum parse_command(char* command, char* arg, int* arg_size) {
     return cmd_type;
 }
 
+void reset_server_sequence(backup_t *backup) {
+    #ifdef DEBUG
+    printf("[ETHBKP] Reseting server sequence\n");
+    #endif
+
+    make_reset_sequence_message(backup);
+    ssize_t size = send_message(backup);
+
+    if (size < 0) {
+        printf("Error on sending reset_server_sequence message\n");
+        return;
+    }
+
+    #ifdef DEBUG 
+    printf("[ETHBKP] Message sent, size=%zi\n", size);
+    #endif
+
+    return;
+}
+
 void client_backup(backup_t* backup, char *path) {
     #ifdef DEBUG
     printf("[ETHBKP] Command: backup\n");
@@ -150,11 +171,13 @@ void client_backup(backup_t* backup, char *path) {
 
     ssize_t size = send_message(backup);
 
-    if (size < 0)
+    if (size < 0) {
         printf("Error: %s\n", strerror(errno));
+        return;
+    }
 
     #ifdef DEBUG
-    printf("[ETHBKP] Message sent, size=%ld\n", size);
+    printf("[ETHBKP] Message sent, size=%zi\n", size);
     #endif
 
     return;

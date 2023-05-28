@@ -19,6 +19,8 @@ void client_run();
 
 commands_enum parse_command(char *command, char *arg, int* arg_size);
 
+void reset_server_sequence(backup_t *backup);
+
 void client_backup(backup_t *backup, char *path);
 
 void client_retrieve(backup_t *backup, char *file_name);
