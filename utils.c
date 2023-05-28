@@ -19,7 +19,7 @@ int min(int a, int b) {
     return b;
 }
 
-void test_alloc(void* p, char* name) {
+void test_alloc(void *p, char *name) {
     if (p)
         return;
 
@@ -29,27 +29,45 @@ void test_alloc(void* p, char* name) {
     return;
 }
 
-void print_buffer(unsigned char* buffer, int size) {
+void print_buffer(unsigned char *buffer, int size) {
+    if (!buffer)
+        return;
+
     for (int i = 0; i < size; i++) {
         printf("buffer[%d]: ", i);
-        for (int j = 7; j >= 0; j--) {
+
+        for (int j = 7; j >= 0; j--)
             printf("%c", (buffer[i] & (1 << j)) ? '1' : '0');
-        }
+
         printf("\n");
     }
+
     printf("\n");
+
+    return;
 }
 
 void print_message(message_t *message) {
+    if (!message)
+        return;
+
+    printf("---- Message\n");
     printf("start_marker: %c\n", message->start_marker);
     printf("size: %d\n", message->size);
+
     printf("sequence: %d\n", message->sequence);
     printf("type: %d\n", message->type);
-    printf("data: ");
-    for (int i = 0; i < message->size; i++)
-        printf("%c", message->data[i]);
-    printf("\n");
+
+    if (message->data) {
+        printf("data: ");
+        for (int i = 0; i < message->size; i++)
+            printf("%c", message->data[i]);
+        printf("\n");
+    }
+
     printf("parity: %c\n", message->parity);
+
+    return;
 }
 
 double timestamp() {
