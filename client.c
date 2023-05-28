@@ -156,29 +156,17 @@ void client_backup(backup_t* backup, char *path) {
     printf("[ETHBKP] Command: backup\n");
     #endif
 
-    FILE* file = fopen(path, "rb");
-
-    if (!file) {
-        printf("Erro ao abrir arquivo: %s\n", strerror(errno));
+    if (access(path, F_OK)) {
+        printf("Erro: arquivo não existe\n"); 
         return;
     }
 
-    make_backup_message(backup, path);   
-
-    #ifdef DEBUG
-    print_message(backup->send_message);
-    #endif
-
-    ssize_t size = send_message(backup);
-
-    if (size < 0) {
-        printf("Error: %s\n", strerror(errno));
+    if (access(path, R_OK)) {
+        printf("Erro: você não tem permissão para ler esse arquivo\n");
         return;
     }
 
-    #ifdef DEBUG
-    printf("[ETHBKP] Message sent, size=%zi\n", size);
-    #endif
+    send_file(backup, path);
 
     return;
 }
