@@ -72,9 +72,11 @@ void message_reset(message_t *message);
 
 void make_reset_sequence_message(backup_t *backup);
 
-void make_backup_message(backup_t *backup, char *path);
+void make_backup_file_message(backup_t *backup, char *path);
 
-void make_backup_data_message(
+void make_end_file_message(backup_t *backup);
+
+void make_data_message(
     backup_t *backup,
     unsigned char *data,
     unsigned data_size

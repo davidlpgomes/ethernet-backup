@@ -132,7 +132,7 @@ void make_reset_sequence_message(backup_t *backup) {
     return;
 }
 
-void make_backup_message(backup_t *backup, char *path) {
+void make_backup_file_message(backup_t *backup, char *path) {
     if (!backup || !path)
         return;
 
@@ -158,7 +158,22 @@ void make_backup_message(backup_t *backup, char *path) {
     return;
 }
 
-void make_backup_data_message(
+void make_end_file_message(backup_t *backup) {
+    if (!backup)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    m->sequence = backup->sequence;
+    m->type = END_FILE;
+
+    set_message_parity(m);
+
+    return;
+}
+
+void make_data_message(
     backup_t *backup,
     unsigned char *data,
     unsigned data_size
@@ -171,7 +186,7 @@ void make_backup_data_message(
 
     m->size = data_size;
     m->sequence = backup->sequence;
-    m->type = BACKUP_FILE;
+    m->type = DATA;
 
     m->data = malloc(sizeof(unsigned char) * data_size);
     test_alloc(m->data, "backup message data");
@@ -230,7 +245,8 @@ ssize_t send_message(backup_t *backup) {
     message_to_buffer(m, backup->send_buffer);
 
     #ifdef DEBUG
-    print_buffer(backup->send_buffer, m->size + MESSAGE_CAPSULE_SIZE);
+    printf("[ETHBKP][SDMSG] Sending message\n");
+    print_message(m);
     #endif
 
     ssize_t size;
@@ -247,7 +263,7 @@ ssize_t send_message(backup_t *backup) {
         is_ack = wait_acknowledgement(backup);
 
         #ifdef DEBUG
-        printf("[ETHBKP][SND] Message sent, is_ack=%d\n", is_ack);
+        printf("[ETHBKP][SNDMSG] Message sent, is_ack=%d\n\n", is_ack);
         #endif
     }
 
@@ -269,6 +285,9 @@ ssize_t receive_message(backup_t *backup) {
             continue;
 
         buffer_to_message(backup->recv_buffer, m);
+
+        if (m->type == ACK || m->type == NACK)
+            continue;
 
         if (
             m->type != RESET_SEQUENCE &&
@@ -342,7 +361,6 @@ int wait_acknowledgement(backup_t *backup) {
             "[ETHBKP][WACK] Received %s\n",
             backup->recv_message->type == ACK ? "ACK" : "NACK"
         );
-        print_message(backup->recv_message);
         #endif
 
         if (backup->recv_message->type == ACK)
@@ -409,7 +427,7 @@ void send_file(backup_t *backup, char *path) {
     }
 
     // Sending file name
-    make_backup_message(backup, path);
+    make_backup_file_message(backup, path);
     ssize_t size = send_message(backup);
 
     if (size < 0) {
@@ -417,6 +435,7 @@ void send_file(backup_t *backup, char *path) {
         return;
     }
 
+    // Send file data
     int buffer_size = DATA_MAX_LEN;
     unsigned char *buffer = malloc(sizeof(unsigned char) * DATA_MAX_LEN);
     test_alloc(buffer, "client backup file buffer");
@@ -424,8 +443,11 @@ void send_file(backup_t *backup, char *path) {
     ssize_t size_data;
     while (!feof(file)) {
         buffer_size = fread(buffer, sizeof(*buffer), DATA_MAX_LEN, file);
-        make_backup_data_message(backup, buffer, buffer_size);
-        
+
+        if (!buffer_size)
+            break;
+
+        make_data_message(backup, buffer, buffer_size);
         size_data = send_message(backup);
 
         if (size_data < 0)
@@ -433,6 +455,15 @@ void send_file(backup_t *backup, char *path) {
     }
 
     fclose(file);
+
+    // Send end file
+    make_end_file_message(backup);
+    size = send_message(backup);
+
+    if (size < 0) {
+        printf("Error: %s\n", strerror(errno));
+        return;
+    }
 
     return;
 }
