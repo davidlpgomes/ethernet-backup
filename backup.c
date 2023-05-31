@@ -8,6 +8,8 @@
 #include <libgen.h>
 #include <errno.h>
 #include <limits.h>
+#include <openssl/md5.h>
+#include <unistd.h>
 
 #include "ConexaoRawSocket.h"
 #include "utils.h"
@@ -507,7 +509,42 @@ void receive_file(backup_t *backup, char *file_name) {
     return;
 }
 
-void get_file_md5() {
+void get_file_md5(unsigned char *out, char *file_name) {
+    if (!out || !file_name)
+        return;
+
+    FILE *file = fopen(file_name, "rb");
+
+    if (!file) {
+        fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));
+        return;
+    }
+
+    int buffer_size = DATA_MAX_LEN;
+    unsigned char *buffer = malloc(sizeof(unsigned char) * DATA_MAX_LEN);
+    test_alloc(buffer, "MD5 file buffer");
+
+    MD5_CTX c;
+    MD5_Init(&c);
+
+    ssize_t size = fread(buffer, sizeof(*buffer), DATA_MAX_LEN, file);
+
+    while (size > 0) {
+        MD5_Update(&c, buffer, size);
+        size = fread(buffer, sizeof(*buffer), DATA_MAX_LEN, file);
+    }
+
+    MD5_Final(out, &c);
+
+    free(buffer);
+
+    #ifdef DEBUG
+    printf("[ETHBKP] MD5: ");
+    for (int i = 0; i < MD5_DIGEST_LENGTH; i++)
+        printf("%c ", out[i]);
+    printf("\n");
+    #endif
+
     return;
 }
 

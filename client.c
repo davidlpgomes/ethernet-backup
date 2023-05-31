@@ -1,5 +1,6 @@
 #include "client.h"
 
+#include <openssl/md5.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -183,6 +184,16 @@ void client_check(backup_t *backup, char *file_name) {
     #ifdef DEBUG
     printf("[ETHBKP] Command: check\n");
     #endif
+    
+    if (!backup || !file_name)
+        return;
+
+    unsigned char *out = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
+    test_alloc(out, "client check cache");
+
+    get_file_md5(out, file_name);
+
+    free(out);
 
     return;
 }

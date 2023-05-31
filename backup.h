@@ -19,7 +19,7 @@ typedef enum message_type_e {
     DEFINE_BACKUP_DIRECTORY = 0b0100,
     CHECK_BACKUP = 0b0101,
     RETRIEVE_FILES_FILE_NAME = 0b0110,
-    MD5 = 0b0111,
+    MD5_FILE = 0b0111,
     DATA = 0b1000,
     END_FILE = 0b1001,
     END_FILES = 0b1010,
@@ -104,7 +104,7 @@ void send_file(backup_t *backup, char *path);
 
 void receive_file(backup_t *backup, char *file_name);
 
-void get_file_md5();
+void get_file_md5(unsigned char *out, char *file_name);
 
 void set_message_parity(message_t *message);
 
