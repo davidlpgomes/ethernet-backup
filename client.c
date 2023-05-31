@@ -219,6 +219,16 @@ void client_help() {
     printf("[ETHBKP] Command: help\n");
     #endif
 
+    printf("Bem-vindo ao Ethernet Backup!\n");
+    printf("Comandos:\n");
+    printf("\tbackup, bkp, b <arquivo>     Faz o backup do arquivo para o servidor\n");
+    printf("\tretrieve, rtv, r <arquivo>   Recupera arquivo do servidor\n");
+    printf("\tcheck, chk, c <arquivo>      Verifica o MD5 de um arquivo com o backup\n");
+    printf("\tdfd                          Define o diretório de backup no servidor\n");
+    printf("\tcd                           Muda o diretório local\n");
+    printf("\thelp                         Mostra uma lista de comandos\n");
+    printf("\texit                         Sair do Ethernet Backup\n");
+
     return;
 }
 
