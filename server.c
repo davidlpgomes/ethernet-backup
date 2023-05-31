@@ -24,9 +24,10 @@ void server_run() {
         printf("- Waiting message\n");
 
         size = receive_message(backup);
-        printf("[ETHBKP] Message received, size=%zi\n", size);
 
         switch (backup->recv_message->type) {
+            case BACKUP_FILE:
+                server_backup(backup, (char*) backup->recv_message->data);
             default:
                 break;
         }
@@ -37,3 +38,17 @@ void server_run() {
     return;
 }
 
+void server_backup(backup_t *backup, char *file_name) {
+    #ifdef DEBUG
+    printf("[ETHBKP] Command: backup\n");
+    #endif
+
+    if (!backup || !file_name)
+        return;
+
+    //TODO: Check permissions
+
+    receive_file(backup, file_name);
+
+    return;
+}

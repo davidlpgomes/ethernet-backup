@@ -102,6 +102,8 @@ void buffer_to_message(unsigned char *buffer, message_t *message);
 
 void send_file(backup_t *backup, char *path);
 
+void receive_file(backup_t *backup, char *file_name);
+
 void get_file_md5();
 
 void set_message_parity(message_t *message);

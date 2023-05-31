@@ -468,6 +468,45 @@ void send_file(backup_t *backup, char *path) {
     return;
 }
 
+void receive_file(backup_t *backup, char *file_name) {
+    if (!backup || !file_name)
+        return;
+
+    FILE *file = fopen(file_name, "wb");
+
+    if (!file) {
+        fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));
+        return;
+    }
+
+    ssize_t size = receive_message(backup);
+
+    if (size < 0) {
+        printf("Error: %s\n", strerror(errno));
+        return;
+    }
+
+    while (backup->recv_message->type == DATA) {
+        fwrite(
+            backup->recv_message->data,
+            sizeof(*backup->recv_message->data),
+            backup->recv_message->size,
+            file
+        );
+         
+        size = receive_message(backup);
+
+        if (size < 0) {
+            printf("Error: %s\n", strerror(errno));
+            return;
+        }
+    }
+
+    fclose(file);
+
+    return;
+}
+
 void get_file_md5() {
     return;
 }
