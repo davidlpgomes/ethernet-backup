@@ -374,6 +374,69 @@ int wait_acknowledgement(backup_t *backup) {
     return is_ack;
 }
 
+int wait_ack_or_error(backup_t *backup) {
+    if (!backup)
+        return -1;
+
+    #ifdef DEBUG
+    printf("[ETHBKP][WACKOE] Waiting acknowledgement\n");
+    #endif
+
+    ssize_t size = -1;
+    int is_ack = 0;
+
+    for (;;) {
+        size = recv(
+            backup->socket,
+            backup->recv_buffer,
+            BUFFER_MAX_LEN,
+            0
+        );
+
+        if (size == -1) {
+            #ifdef DEBUG
+            printf(
+                "[ETHBKP][WACKOE] No message received after timeout: errno=%d\n",
+                errno
+            );
+            #endif
+
+            break;
+        }
+
+        buffer_to_message(backup->recv_buffer, backup->recv_message);
+
+        if (backup->recv_message->start_marker != START_MARKER)
+            continue;
+
+        if (backup->recv_message->type == ERROR) {
+            is_ack == backup->recv_message->data[0];
+            break;
+        }
+
+        if (
+            backup->recv_message->type != ACK &&
+            backup->recv_message->type != NACK
+        )
+            continue;
+
+        #ifdef DEBUG
+        printf(
+            "[ETHBKP][WACK] Received %s\n",
+            backup->recv_message->type == ACK ? "ACK" : "NACK"
+        );
+        #endif
+
+        if (backup->recv_message->type == ACK)
+            is_ack = 1;
+
+        break;
+    }
+
+    return is_ack;
+    
+}
+
 void message_to_buffer(message_t* message, unsigned char* buffer) {
     if (!message || !buffer)
         return;

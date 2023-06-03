@@ -96,6 +96,8 @@ ssize_t receive_message(backup_t *backup);
 
 int wait_acknowledgement(backup_t *backup);
 
+int wait_ack_or_error(backup_t *backup); 
+
 void message_to_buffer(message_t *message, unsigned char *buffer);
 
 void buffer_to_message(unsigned char *buffer, message_t *message);
