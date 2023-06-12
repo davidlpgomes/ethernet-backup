@@ -46,5 +46,8 @@ utils-debug.o: utils.h utils.c
 ConexaoRawSocket.o: ConexaoRawSocket.h ConexaoRawSocket.c
 	$(CC) $(CFLAGS) -c ConexaoRawSocket.c -o ConexaoRawSocket.o $(LFLAGS)
 
+purge:
+	rm -f *.o
+
 clean:
 	rm -f *.o $(PROG)
