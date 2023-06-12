@@ -38,6 +38,27 @@ void server_run() {
     return;
 }
 
+void make_error_message(backup_t *backup, eth_error_e error) {
+    if (!backup || !data)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    m->size = 1;
+    m->sequence = backup->sequence;
+    m->type = ERROR;
+
+    m->data = malloc(sizeof(unsigned char));
+    test_alloc(m->data, "backup message data");
+
+    m->data[0] = error;
+
+    set_message_parity(m);
+
+    return;
+}
+
 void server_backup(backup_t *backup, char *file_name) {
     #ifdef DEBUG
     printf("[ETHBKP] Command: backup\n");
