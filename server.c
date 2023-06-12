@@ -28,6 +28,7 @@ void server_run() {
         switch (backup->recv_message->type) {
             case BACKUP_FILE:
                 server_backup(backup, (char*) backup->recv_message->data);
+                break;
             default:
                 break;
         }
@@ -73,3 +74,4 @@ void server_backup(backup_t *backup, char *file_name) {
 
     return;
 }
+

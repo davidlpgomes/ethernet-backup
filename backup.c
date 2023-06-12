@@ -200,6 +200,29 @@ void make_data_message(
     return;
 }
 
+void make_backup_directory_message(backup_t *backup, char *path) {
+    if (!backup || !path)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    ssize_t size = strlen(path);
+
+    m->size = size;
+    m->sequence = backup->sequence;
+    m->type = DEFINE_BACKUP_DIRECTORY;
+
+    m->data = malloc(sizeof(unsigned char) * size);
+    test_alloc(m->data, "backup directory message");
+
+    memcpy(m->data, path, size);
+
+    set_message_parity(m);
+
+    return;
+}
+
 void make_ack_message(message_t* message) {
     message_reset(message);
     message->type = ACK;

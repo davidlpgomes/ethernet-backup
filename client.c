@@ -219,6 +219,15 @@ void client_define_backup_dir(backup_t *backup, char *dir) {
     printf("[ETHBKP] Command: define backup directory\n");
     #endif
 
+    if (!backup || !dir)
+        return;
+
+    make_backup_directory_message(backup, dir);
+    ssize_t size = send_message(backup);
+
+    if (size < 0)
+        printf("Error: %s\n", strerror(errno));
+
     return;
 }
 

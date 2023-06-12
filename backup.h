@@ -82,6 +82,8 @@ void make_data_message(
     unsigned data_size
 );
 
+void make_backup_directory_message(backup_t *backup, char *path);
+
 void make_ack_message(message_t *message);
 
 void make_nack_message(message_t *message);
