@@ -1,14 +1,17 @@
 #include "client.h"
 
+#include <arpa/inet.h>
+#include <dirent.h>
+#include <errno.h>
+#include <limits.h>
+#include <linux/limits.h>
 #include <openssl/md5.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <arpa/inet.h>
 
 #include "backup.h"
 #include "utils.h"
@@ -29,11 +32,17 @@ void client_run() {
 
     int arg_size;
 
+    char *cwd = malloc(sizeof(char) * PATH_MAX);
+    test_alloc(cwd, "cwd");
+
     commands_enum cmd_type;
 
     for (;;) {
-        printf(">>> ");
+        getcwd(cwd, PATH_MAX);
+        printf("[%s] >>> ", cwd);
+
         fgets(command, STR_LEN, stdin);
+        command[strlen(command) - 1] = '\0';
 
         cmd_type = parse_command(command, arg, &arg_size);
 
@@ -60,6 +69,9 @@ void client_run() {
             case C_CHANGE_DIRECTORY:
                 client_change_directory(arg);
                 break;
+            case C_LIST_DIRECTORY:
+                client_list_directory(arg);
+                break;
             case C_CHECK:
                 client_check(backup, arg);
                 break;
@@ -74,6 +86,7 @@ void client_run() {
         }
     }
 
+    free(cwd);
     free(arg);
     free(command);
 
@@ -94,8 +107,9 @@ commands_enum parse_command(char* command, char* arg, int* arg_size) {
         *arg_size = strlen(aux);
         memcpy(arg, aux, min(*arg_size, DATA_MAX_LEN));
 
-        arg[*arg_size - 1] = '\0';
-    }
+        arg[*arg_size] = '\0';
+    } else
+        arg[0] = '\0';
 
     commands_enum cmd_type = C_INVALID;
 
@@ -121,6 +135,8 @@ commands_enum parse_command(char* command, char* arg, int* arg_size) {
         cmd_type = C_DEFINE_BACKUP_DIRECTORY;
     else if (!strcmp(cmd, "cd"))
         cmd_type = C_CHANGE_DIRECTORY;
+    else if (!strcmp(cmd, "ls"))
+        cmd_type = C_LIST_DIRECTORY;
     else if (!strcmp(cmd, "exit"))
         cmd_type = C_EXIT;
     else if (
@@ -211,6 +227,67 @@ void client_change_directory(char *dir) {
     printf("[ETHBKP] Command: change directory\n");
     #endif
 
+    if (!dir) {
+        printf("Erro: diretório inválido\n");
+        return;
+    }
+
+    int ret = chdir(dir);
+
+    if (ret == -1)
+        printf("Erro: %s\n", strerror(errno));
+
+    return;
+}
+
+void client_list_directory(char *dir) {
+    #ifdef DEBUG
+    printf("[ETHBKP] Command: list directory %s\n", dir);
+    #endif
+
+    char path[PATH_MAX];
+
+    if (!strlen(dir))
+        getcwd(path, PATH_MAX);
+    else
+        realpath(dir, path);
+
+    printf("Conteúdo do diretório %s:\n", path);
+
+    DIR *dirstream;
+    struct dirent *direntry;
+
+    dirstream = opendir(path);
+
+    if (!dirstream) {
+        printf("Erro: não foi possível abrir o diretório %s\n", path);
+        return;
+    }
+
+    direntry = readdir(dirstream);
+
+    while (direntry) {
+        switch (direntry->d_type) {
+            case DT_UNKNOWN:
+                printf("U - ");
+                break;
+            case DT_REG:
+                printf("A - ");
+                break;
+            case DT_DIR:
+                printf("D - ");
+                break;
+            default:
+                printf("O - ");
+        }
+
+        printf("%s\n", direntry->d_name);
+
+        direntry = readdir(dirstream);
+    }
+
+    closedir(dirstream);
+
     return;
 }
 
@@ -221,13 +298,14 @@ void client_help() {
 
     printf("Bem-vindo ao Ethernet Backup!\n");
     printf("Comandos:\n");
-    printf("\tbackup, bkp, b <arquivo>     Faz o backup do arquivo para o servidor\n");
-    printf("\tretrieve, rtv, r <arquivo>   Recupera arquivo do servidor\n");
-    printf("\tcheck, chk, c <arquivo>      Verifica o MD5 de um arquivo com o backup\n");
-    printf("\tdfd                          Define o diretório de backup no servidor\n");
-    printf("\tcd                           Muda o diretório local\n");
-    printf("\thelp                         Mostra uma lista de comandos\n");
-    printf("\texit                         Sair do Ethernet Backup\n");
+    printf("  backup, bkp, b <arquivo>     Faz o backup do arquivo para o servidor\n");
+    printf("  retrieve, rtv, r <arquivo>   Recupera arquivo do servidor\n");
+    printf("  check, chk, c <arquivo>      Verifica o MD5 de um arquivo com o backup\n");
+    printf("  dfd                          Define o diretório de backup no servidor\n");
+    printf("  cd                           Muda o diretório local\n");
+    printf("  ls                           Lista o conteúdo do working directory\n");
+    printf("  help                         Mostra uma lista de comandos\n");
+    printf("  exit                         Sair do Ethernet Backup\n");
 
     return;
 }

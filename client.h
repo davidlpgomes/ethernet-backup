@@ -9,6 +9,7 @@ typedef enum commands_enum {
     C_CHECK,
     C_DEFINE_BACKUP_DIRECTORY,
     C_CHANGE_DIRECTORY,
+    C_LIST_DIRECTORY,
     C_HELP,
     C_EXIT,
     C_INVALID
@@ -30,6 +31,8 @@ void client_check(backup_t *backup, char *file_name);
 void client_define_backup_dir(backup_t *backup, char *dir);
 
 void client_change_directory(char *dir);
+
+void client_list_directory(char *dir);
 
 void client_help();
 
