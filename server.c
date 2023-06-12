@@ -40,7 +40,7 @@ void server_run() {
 }
 
 void make_error_message(backup_t *backup, eth_error_e error) {
-    if (!backup || !data)
+    if (!backup || !error)
         return;
 
     message_t *m = backup->send_message;
