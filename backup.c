@@ -1,14 +1,15 @@
 #include "backup.h"
 
+#include <arpa/inet.h>
+#include <errno.h>
+#include <glob.h>
+#include <libgen.h>
+#include <limits.h>
+#include <openssl/md5.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
-#include <libgen.h>
-#include <errno.h>
-#include <limits.h>
-#include <openssl/md5.h>
 #include <unistd.h>
 
 #include "ConexaoRawSocket.h"
@@ -503,6 +504,38 @@ void buffer_to_message(unsigned char *buffer, message_t *message) {
     return;
 }
 
+void backup_files(backup_t *backup, char *pattern) {
+    if (!backup || !pattern)
+        return;
+
+    glob_t globe;
+
+    int ret = glob(pattern, GLOB_ERR | GLOB_TILDE, NULL, &globe);
+
+    if (ret) {
+        if (ret == GLOB_NOMATCH)
+            printf("Nenhum arquivo encontrado\n");
+        else
+            printf("Erro: glob %s\n", strerror(errno));
+
+        return;
+    }
+
+    size_t files = globe.gl_pathc;
+
+    char **file = globe.gl_pathv;
+    while (*file) {
+        printf("Enviando arquivo %s...\n", *file);
+        send_file(backup, *file);
+
+        file++;
+    }
+
+    globfree(&globe);
+
+    return;
+}
+
 void send_file(backup_t *backup, char *path) {
     if (!backup || !path)
         return;
@@ -559,6 +592,8 @@ void send_file(backup_t *backup, char *path) {
 void receive_file(backup_t *backup, char *file_name) {
     if (!backup || !file_name)
         return;
+
+    printf("Salvando arquivo %s\n", file_name);
 
     FILE *file = fopen(file_name, "wb");
 

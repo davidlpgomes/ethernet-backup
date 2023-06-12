@@ -108,8 +108,10 @@ commands_enum parse_command(char* command, char* arg, int* arg_size) {
         memcpy(arg, aux, min(*arg_size, DATA_MAX_LEN));
 
         arg[*arg_size] = '\0';
-    } else
+    } else {
+        *arg_size = 0;
         arg[0] = '\0';
+    }
 
     commands_enum cmd_type = C_INVALID;
 
@@ -173,6 +175,7 @@ void client_backup(backup_t* backup, char *path) {
     printf("[ETHBKP] Command: backup\n");
     #endif
 
+    /*
     if (access(path, F_OK)) {
         printf("Erro: arquivo não existe\n"); 
         return;
@@ -182,8 +185,9 @@ void client_backup(backup_t* backup, char *path) {
         printf("Erro: você não tem permissão para ler esse arquivo\n");
         return;
     }
+    */
 
-    send_file(backup, path);
+    backup_files(backup, path);
 
     return;
 }
