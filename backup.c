@@ -135,6 +135,45 @@ void make_reset_sequence_message(backup_t *backup) {
     return;
 }
 
+void make_num_of_files_message(backup_t *backup, int num) {
+    if (!backup)
+        return;
+
+    message_t *m = backup->send_message;
+
+    message_reset(m);
+
+    m->size = sizeof(int);
+    m->sequence = backup->sequence;
+    m->type = BACKUP_FILES;
+
+    m->data = malloc(sizeof(int));
+    test_alloc(m->data, "num of files message");
+
+    memcpy(m->data, &num, sizeof(int));
+
+    set_message_parity(m);
+
+    return;
+}
+
+void make_end_files_message(backup_t *backup) {
+    if (!backup) 
+        return;
+
+    message_t *m = backup->send_message;
+
+    message_reset(m);
+
+    m->sequence = backup->sequence;
+    m->type = END_FILES;
+
+    set_message_parity(m);
+
+    return;
+
+}
+
 void make_backup_file_message(backup_t *backup, char *path) {
     if (!backup || !path)
         return;
@@ -523,12 +562,22 @@ void backup_files(backup_t *backup, char *pattern) {
 
     size_t files = globe.gl_pathc;
 
+    if (files > 1) {
+        make_num_of_files_message(backup, files);
+        ssize_t size = send_message(backup);
+    }
+
     char **file = globe.gl_pathv;
     while (*file) {
         printf("Enviando arquivo %s...\n", *file);
         send_file(backup, *file);
 
         file++;
+    }
+
+    if (files > 1) {
+        make_end_files_message(backup);
+        ssize_t size = send_message(backup);
     }
 
     globfree(&globe);

@@ -72,6 +72,10 @@ void message_reset(message_t *message);
 
 void make_reset_sequence_message(backup_t *backup);
 
+void make_num_of_files_message(backup_t *backup, int num);
+
+void make_end_files_message(backup_t *backup);
+
 void make_backup_file_message(backup_t *backup, char *path);
 
 void make_end_file_message(backup_t *backup);
