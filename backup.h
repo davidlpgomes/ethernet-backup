@@ -112,6 +112,8 @@ void backup_files(backup_t *backup, char *pattern);
 
 void send_file(backup_t *backup, char *path);
 
+void receive_files(backup_t *backup, unsigned num_files);
+
 void receive_file(backup_t *backup, char *file_name);
 
 void get_file_md5(unsigned char *out, char *file_name);

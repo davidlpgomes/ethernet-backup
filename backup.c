@@ -638,6 +638,30 @@ void send_file(backup_t *backup, char *path) {
     return;
 }
 
+void receive_files(backup_t *backup, unsigned num_files) {
+    if (!backup)
+        return;
+
+    printf("Recebendo %u arquivos\n", num_files);
+
+    ssize_t size;
+    for (int i = 0; i < num_files; i++) {
+        size = receive_message(backup);
+
+        if (!size) {
+            fprintf(stderr, "Receive files - SIZE is invalid!");
+            exit(1);
+        }
+
+        receive_file(backup, (char*) backup->recv_message->data);
+    }
+
+    size = receive_message(backup);
+    printf("Fim do grupo de arquivos\n");
+
+    return;
+}
+
 void receive_file(backup_t *backup, char *file_name) {
     if (!backup || !file_name)
         return;

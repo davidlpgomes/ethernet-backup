@@ -29,6 +29,9 @@ void server_run() {
             case BACKUP_FILE:
                 server_backup(backup, (char*) backup->recv_message->data);
                 break;
+            case BACKUP_FILES:
+                server_backup_files(backup, *backup->recv_message->data);
+                break;
             default:
                 break;
         }
@@ -71,6 +74,19 @@ void server_backup(backup_t *backup, char *file_name) {
     //TODO: Check permissions
 
     receive_file(backup, file_name);
+
+    return;
+}
+
+void server_backup_files(backup_t *backup, unsigned num_files) {
+    #ifdef DEBUG
+    printf("[ETHBKP] Command: backup files\n");
+    #endif
+
+    if (!backup || !num_files)
+        return;
+
+    receive_files(backup, num_files);
 
     return;
 }
