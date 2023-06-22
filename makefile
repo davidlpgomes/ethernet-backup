@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
-LFLAGS = 
+LFLAGS = -lcrypto 
 
 PROG = backup
 
