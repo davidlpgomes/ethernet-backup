@@ -3,7 +3,7 @@
 
 #include "backup.h"
 
-void server_run();
+void server_run(int loopback);
 
 void server_backup(backup_t *backup, char *file_name);
 

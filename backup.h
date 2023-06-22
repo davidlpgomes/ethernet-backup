@@ -58,9 +58,9 @@ typedef struct backup_t {
 } backup_t;
 
 
-int create_socket();
+int create_socket(int loopback);
 
-backup_t *create_backup();
+backup_t *create_backup(int loopback);
 
 void free_backup(backup_t *backup);
 

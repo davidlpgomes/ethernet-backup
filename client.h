@@ -16,7 +16,7 @@ typedef enum commands_enum {
 } commands_enum;
 
 
-void client_run();
+void client_run(int loopback);
 
 commands_enum parse_command(char *command, char *arg, int* arg_size);
 

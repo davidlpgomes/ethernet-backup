@@ -11,9 +11,10 @@ int main(int argc, char** argv) {
     setvbuf(stdout, 0, _IONBF, 0);
 
     int run_mode = -1; // 0 -> CLIENT, 1 -> SERVER
+    int loopback = 0;
     
     int opt;
-    while ((opt = getopt(argc, argv, "cs")) != -1) {
+    while ((opt = getopt(argc, argv, "csl")) != -1) {
         switch(opt) {
             case 'c':
                 run_mode = 0;
@@ -21,6 +22,8 @@ int main(int argc, char** argv) {
             case 's':
                 run_mode = 1;
                 break;
+            case 'l':
+                loopback = 1;
             default:
                 fprintf(stderr, "Usage: %s [-c] [-s]\n", argv[0]);
                 exit(EXIT_FAILURE);
@@ -33,9 +36,9 @@ int main(int argc, char** argv) {
     }
    
     if (run_mode)
-        server_run();
+        server_run(loopback);
     else
-        client_run();
+        client_run(loopback);
 
     return 0;
 }

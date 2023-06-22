@@ -15,12 +15,12 @@
 #include "ConexaoRawSocket.h"
 
 
-void server_run() {
+void server_run(int loopback) {
     #ifdef DEBUG
     printf("[ETHBKP] Running as server...\n");
     #endif
 
-    backup_t *backup = create_backup();
+    backup_t *backup = create_backup(loopback);
     message_t *m = backup->recv_message;
     ssize_t size;
 

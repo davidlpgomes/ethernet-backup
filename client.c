@@ -16,12 +16,12 @@
 #include "backup.h"
 #include "utils.h"
 
-void client_run() {
+void client_run(int loopback) {
     #ifdef DEBUG
     printf("[ETHBKP] Running as client...\n");
     #endif
 
-    backup_t *backup = create_backup();
+    backup_t *backup = create_backup(loopback);
     reset_server_sequence(backup);
 
     char *command = malloc(sizeof(char) * STR_LEN);

@@ -9,15 +9,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <ifaddrs.h>
 #include <unistd.h>
 
 #include "ConexaoRawSocket.h"
 #include "utils.h"
 
 
-int create_socket() {
-    int socket = ConexaoRawSocket("lo");
+int create_socket(int loopback) {
+    int socket;
+    if (loopback) {
+        socket = ConexaoRawSocket("lo");
+    } else {
+        struct ifaddrs *addrs,*tmp;
+
+        getifaddrs(&addrs);
+        tmp = addrs;
+
+        while (tmp)
+        {
+            if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET)
+                if (tmp->ifa_name[0] == 'e' || tmp->ifa_name[0] == 'E') {
+                    printf("device name: %s\n", tmp->ifa_name);
+                    socket = ConexaoRawSocket(tmp->ifa_name);
+                    break;
+                }
+
+            tmp = tmp->ifa_next;
+        }
+
+        freeifaddrs(addrs);
+    }
 
     // Set timeout to U_TIMEOUT
     struct timeval tv;
@@ -40,11 +64,11 @@ int create_socket() {
     return socket;
 }
 
-backup_t *create_backup() {
+backup_t *create_backup(int loopback) {
     backup_t *backup = malloc(sizeof(backup_t));
     test_alloc(backup, "backup");
 
-    backup->socket = create_socket();
+    backup->socket = create_socket(loopback);
     backup->sequence = 0;
 
     backup->send_message = create_message();
