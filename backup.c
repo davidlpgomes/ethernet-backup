@@ -653,7 +653,7 @@ void receive_files(backup_t *backup, unsigned num_files) {
             exit(1);
         }
 
-        receive_file(backup, (char*) backup->recv_message->data);
+        receive_file(backup);
     }
 
     size = receive_message(backup);
@@ -662,13 +662,23 @@ void receive_files(backup_t *backup, unsigned num_files) {
     return;
 }
 
-void receive_file(backup_t *backup, char *file_name) {
-    if (!backup || !file_name)
+void receive_file(backup_t *backup) {
+    if (!backup)
         return;
 
-    printf("Salvando arquivo %s\n", file_name);
+    int size_f = backup->recv_message->size; 
 
-    FILE *file = fopen(file_name, "wb");
+    char *f = malloc(sizeof(char) * (size_f + 1));
+    test_alloc(f, "receive_file file name");
+
+    f[size_f] = '\0';
+    memcpy(f, backup->recv_message->data, size_f);
+
+    printf("Salvando arquivo %s\n", f);
+
+    FILE *file = fopen(f, "wb");
+
+    free(f);
 
     if (!file) {
         fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));

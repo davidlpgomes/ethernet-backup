@@ -90,7 +90,7 @@ void server_backup(backup_t *backup, char *file_name) {
 
     //TODO: Check permissions
 
-    receive_file(backup, file_name);
+    receive_file(backup);
 
     return;
 }
@@ -119,12 +119,16 @@ void server_define_backup_directory(backup_t *backup, char *dir) {
     int size = backup->recv_message->size;
 
     char *d = malloc(sizeof(char) * size + 1);
+    test_alloc(d, "server_define_backup_directory dir name");
+
     d[size] = '\0';
     memcpy(d, dir, size);
 
     printf("Changing directory to %s\n", d);
 
     int ret = chdir(d);
+
+    free(d);
 
     if (ret == -1)
         printf("Erro: %s\n", strerror(errno));
@@ -140,16 +144,28 @@ void server_send_md5(backup_t *backup, char *file_name) {
     if (!backup || !file_name)
         return;
 
-    printf("Generating md5 for %s\n", file_name);
+    int size = backup->recv_message->size;
+
+    char *f = malloc(sizeof(char) * size + 1);
+    test_alloc(f, "server_send_md5 file name");
+
+    f[size] = '\0';
+    memcpy(f, file_name, size);
+
+    printf("Generating md5 for %s\n", f);
 
     unsigned char *out = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
     test_alloc(out, "server md5 cache");
-    get_file_md5(out, file_name);
+
+    get_file_md5(out, f);
 
     make_md5_response(backup, out);
     send_message(backup);
 
     free(out);
+    free(f);
+
+    return;
 }
 
 void make_md5_response(backup_t *backup, unsigned char *md5_str) {
