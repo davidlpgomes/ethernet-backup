@@ -197,6 +197,30 @@ void client_retrieve(backup_t *backup, char *file_name) {
     printf("[ETHBKP] Command: retrieve\n");
     #endif
 
+    if (!backup || !file_name)
+        return;
+
+    char is_wildcard = 0;
+
+    if (
+        strchr(file_name, '?') ||
+        strchr(file_name, '*') ||
+        strchr(file_name, '[')
+    )
+        is_wildcard = 1;
+
+
+    make_retrieve_file_message(backup, file_name, is_wildcard);
+    if (send_message(backup) < 0) {
+        fprintf(stderr, "Error: %s\n", strerror(errno));
+        exit(1);
+    }
+
+    if (is_wildcard)
+        retrieve_files(backup);
+    else
+        retrieve_file(backup, file_name);
+
     return;
 }
 

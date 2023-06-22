@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <errno.h>
+#include <glob.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +40,15 @@ void server_run() {
                 break;
             case BACKUP_FILES:
                 server_backup_files(backup, *backup->recv_message->data);
+                break;
+            case RETRIEVE_FILE:
+                server_retrieve(backup, (char*) backup->recv_message->data);
+                break;
+            case RETRIEVE_FILES:
+                server_retrieve_files(
+                    backup,
+                    (char*) backup->recv_message->data
+                );
                 break;
             case DEFINE_BACKUP_DIRECTORY:
                 server_define_backup_directory(
@@ -90,7 +100,7 @@ void server_backup(backup_t *backup, char *file_name) {
 
     //TODO: Check permissions
 
-    receive_file(backup);
+    receive_file(backup, file_name, backup->recv_message->size);
 
     return;
 }
@@ -104,6 +114,77 @@ void server_backup_files(backup_t *backup, unsigned num_files) {
         return;
 
     receive_files(backup, num_files);
+
+    return;
+}
+
+void server_retrieve(backup_t *backup, char *file_name) {
+    #ifdef DEBUG
+    printf("[ETHBKP] Command: retrieve\n");
+    #endif
+
+    if (!backup || !file_name)
+        return;
+
+    printf("Enviando arquivo: %s\n", file_name);
+    send_file(backup, file_name);
+
+    return;
+}
+
+void server_retrieve_files(backup_t *backup, char *pattern) {
+    #ifdef DEBUG
+    printf("[ETHBKP] Command: retrieve files\n");
+    #endif
+
+    if (!backup || !pattern)
+        return;
+
+    glob_t globe;
+
+    printf("Buscando arquivos com o padrão %s\n", pattern);
+
+    int ret = glob(pattern, GLOB_ERR | GLOB_TILDE, NULL, &globe);
+
+    if (ret) {
+        if (ret == GLOB_NOMATCH)
+            printf("Nenhum arquivo encontrado\n");
+        else
+            printf("Erro: glob %s\n", strerror(errno));
+
+        return;
+    }
+
+    ssize_t size;
+
+    size_t files = globe.gl_pathc;
+    char **file = globe.gl_pathv;
+
+    while (*file) {
+        printf("Enviando arquivo %s...\n", *file);
+
+        make_retrieve_file_name_message(backup, *file);
+        size = send_message(backup);
+
+        if (size < 0) {
+            fprintf(stderr, "Error: %s\n", strerror(errno));
+            return;
+        }
+
+        send_file(backup, *file);
+
+        file++;
+    }
+
+    make_end_files_message(backup);
+    size = send_message(backup);
+
+    if (size < 0) {
+        fprintf(stderr, "Error: %s\n", strerror(errno));
+        return;
+    }
+
+    globfree(&globe);
 
     return;
 }
