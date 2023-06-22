@@ -86,6 +86,10 @@ void make_data_message(
     unsigned data_size
 );
 
+void make_retrieve_file_message(backup_t *backup, char *file, char is_group);
+
+void make_retrieve_file_name_message(backup_t *backup, char *file_name);
+
 void make_backup_directory_message(backup_t *backup, char *path);
 
 void make_ack_message(message_t *message);
@@ -112,9 +116,15 @@ void backup_files(backup_t *backup, char *pattern);
 
 void send_file(backup_t *backup, char *path);
 
+void send_file_with_name(backup_t *backup, char *path);
+
 void receive_files(backup_t *backup, unsigned num_files);
 
-void receive_file(backup_t *backup);
+void receive_file(backup_t *backup, char *file_name, unsigned file_name_size);
+
+void retrieve_file(backup_t *backup, char *file_name);
+
+void retrieve_files(backup_t *backup);
 
 void get_file_md5(unsigned char *out, char *file_name);
 

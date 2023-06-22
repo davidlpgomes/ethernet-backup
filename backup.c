@@ -264,6 +264,58 @@ void make_data_message(
     return;
 }
 
+void make_retrieve_file_message(backup_t *backup, char *file, char is_group) {
+    if (!backup || !file)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    char *name = basename(file);
+    int name_len = strlen(name);
+
+    m->size = name_len;
+    m->sequence = backup->sequence;
+
+    if (is_group)
+        m->type = RETRIEVE_FILES;
+    else
+        m->type = RETRIEVE_FILE;
+
+    m->data = malloc(sizeof(unsigned char) * name_len);
+    test_alloc(m->data, "retrieve message file name");
+
+    memcpy(m->data, name, name_len);
+
+    set_message_parity(m);
+
+    return;
+}
+
+void make_retrieve_file_name_message(backup_t *backup, char *file_name) {
+    if (!backup || !file_name)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    char *name = basename(file_name);
+    int name_len = strlen(name);
+
+    m->size = name_len;
+    m->sequence = backup->sequence;
+    m->type = RETRIEVE_FILES_FILE_NAME;
+
+    m->data = malloc(sizeof(unsigned char) * name_len);
+    test_alloc(m->data, "retrieve file name message data");
+
+    memcpy(m->data, name, name_len);
+
+    set_message_parity(m);
+
+    return;
+}
+
 void make_backup_directory_message(backup_t *backup, char *path) {
     if (!backup || !path)
         return;
@@ -599,7 +651,7 @@ void backup_files(backup_t *backup, char *pattern) {
     char **file = globe.gl_pathv;
     while (*file) {
         printf("Enviando arquivo %s...\n", *file);
-        send_file(backup, *file);
+        send_file_with_name(backup, *file);
 
         file++;
     }
@@ -622,15 +674,6 @@ void send_file(backup_t *backup, char *path) {
 
     if (!file) {
         fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));
-        return;
-    }
-
-    // Sending file name
-    make_backup_file_message(backup, path);
-    ssize_t size = send_message(backup);
-
-    if (size < 0) {
-        printf("Error: %s\n", strerror(errno));
         return;
     }
 
@@ -657,12 +700,30 @@ void send_file(backup_t *backup, char *path) {
 
     // Send end file
     make_end_file_message(backup);
-    size = send_message(backup);
+    ssize_t size = send_message(backup);
 
     if (size < 0) {
         printf("Error: %s\n", strerror(errno));
         return;
     }
+
+    return;
+}
+
+void send_file_with_name(backup_t *backup, char *path) {
+    if (!backup || !path)
+        return;
+
+    // Sending file name
+    make_backup_file_message(backup, path);
+    ssize_t size = send_message(backup);
+
+    if (size < 0) {
+        printf("Error: %s\n", strerror(errno));
+        return;
+    }
+
+    send_file(backup, path);
 
     return;
 }
@@ -682,7 +743,11 @@ void receive_files(backup_t *backup, unsigned num_files) {
             exit(1);
         }
 
-        receive_file(backup);
+        receive_file(
+            backup,
+            (char*) backup->recv_message->data,
+            backup->recv_message->size
+        );
     }
 
     size = receive_message(backup);
@@ -691,17 +756,15 @@ void receive_files(backup_t *backup, unsigned num_files) {
     return;
 }
 
-void receive_file(backup_t *backup) {
+void receive_file(backup_t *backup, char *file_name, unsigned file_name_size) {
     if (!backup)
         return;
 
-    int size_f = backup->recv_message->size; 
-
-    char *f = malloc(sizeof(char) * (size_f + 1));
+    char *f = malloc(sizeof(char) * (file_name_size + 1));
     test_alloc(f, "receive_file file name");
 
-    f[size_f] = '\0';
-    memcpy(f, backup->recv_message->data, size_f);
+    f[file_name_size] = '\0';
+    memcpy(f, file_name, file_name_size);
 
     printf("Salvando arquivo %s\n", f);
 
@@ -738,6 +801,40 @@ void receive_file(backup_t *backup) {
     }
 
     fclose(file);
+
+    return;
+}
+
+void retrieve_file(backup_t *backup, char *file_name) {
+    if (!backup || !file_name)
+        return;
+
+    receive_file(backup, file_name, strlen(file_name));
+
+    return;
+}
+
+void retrieve_files(backup_t *backup) {
+    if (!backup)
+        return;
+
+    ssize_t size;
+    for (;;) {
+        size = receive_message(backup);
+
+        if (!size) {
+            fprintf(stderr, "Retrieve files - SIZE is invalid!");
+        }
+
+        if (backup->recv_message->type == END_FILES)
+            break;
+
+        receive_file(
+            backup,
+            (char*) backup->recv_message->data,
+            backup->recv_message->size
+        );
+    }
 
     return;
 }
