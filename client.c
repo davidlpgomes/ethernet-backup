@@ -213,10 +213,46 @@ void client_check(backup_t *backup, char *file_name) {
 
     get_file_md5(out, file_name);
 
+    make_md5_message(backup, file_name);
+    send_message(backup);
+
+    receive_message(backup);
+
+    message_t *m = backup->recv_message;
+    
+    if (!strncmp((char *) out, (char *) m->data, m->size))
+        printf("O arquivo %s está integro no backup\n", file_name);
+    else
+        printf("O arquivo %s foi corrompido\n", file_name);
+
     free(out);
 
     return;
 }
+
+void make_md5_message(backup_t *backup, char *file_name) {
+    if (!backup || !file_name)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    int name_len = strlen(file_name);
+
+    m->size = name_len;
+    m->sequence = backup->sequence;
+    m->type = MD5_FILE;
+
+    m->data = malloc(sizeof(unsigned char) * name_len);
+    test_alloc(m->data, "backup message file name");
+
+    memcpy(m->data, file_name, name_len);
+
+    set_message_parity(m);
+
+    return;
+}
+
 
 void client_define_backup_dir(backup_t *backup, char *dir) {
     #ifdef DEBUG

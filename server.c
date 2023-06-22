@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <openssl/md5.h>
 
 #include "backup.h"
 #include "utils.h"
@@ -44,6 +45,9 @@ void server_run() {
                     backup,
                     (char*) backup->recv_message->data
                 );
+                break;
+            case MD5_FILE:
+                server_send_md5(backup, (char *) backup->recv_message->data);
                 break;
             default:
                 break;
@@ -128,3 +132,44 @@ void server_define_backup_directory(backup_t *backup, char *dir) {
     return;
 }
 
+void server_send_md5(backup_t *backup, char *file_name) {
+    #ifdef DEBUG
+    printf("[ETHBKP] Command: get file md5\n");
+    #endif
+
+    if (!backup || !file_name)
+        return;
+
+    printf("Generating md5 for %s\n", file_name);
+
+    unsigned char *out = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
+    test_alloc(out, "server md5 cache");
+    get_file_md5(out, file_name);
+
+    make_md5_response(backup, out);
+    send_message(backup);
+
+    free(out);
+}
+
+void make_md5_response(backup_t *backup, unsigned char *md5_str) {
+    if (!backup || !md5_str)
+        return;
+
+    message_t *m = backup->send_message;
+    message_reset(m);
+
+    m->size = MD5_DIGEST_LENGTH;
+    m->sequence = backup->sequence;
+    m->type = MD5_FILE;
+
+    m->data = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
+    test_alloc(m->data, "md5 response");
+
+    memcpy(m->data, md5_str, MD5_DIGEST_LENGTH);
+
+    set_message_parity(m);
+
+    return;
+
+}
