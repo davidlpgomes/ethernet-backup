@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
                 break;
             case 'l':
                 loopback = 1;
+                break;
             default:
                 fprintf(stderr, "Usage: %s [-c] [-s]\n", argv[0]);
                 exit(EXIT_FAILURE);

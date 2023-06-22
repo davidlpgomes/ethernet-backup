@@ -20,9 +20,10 @@
 
 int create_socket(int loopback) {
     int socket;
-    if (loopback) {
+
+    if (loopback)
         socket = ConexaoRawSocket("lo");
-    } else {
+    else {
         struct ifaddrs *addrs,*tmp;
 
         getifaddrs(&addrs);
@@ -32,7 +33,6 @@ int create_socket(int loopback) {
         {
             if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET)
                 if (tmp->ifa_name[0] == 'e' || tmp->ifa_name[0] == 'E') {
-                    printf("device name: %s\n", tmp->ifa_name);
                     socket = ConexaoRawSocket(tmp->ifa_name);
                     break;
                 }
