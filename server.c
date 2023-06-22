@@ -112,9 +112,15 @@ void server_define_backup_directory(backup_t *backup, char *dir) {
     if (!backup || !dir)
         return;
 
-    printf("Changing directory to %s\n", dir);
+    int size = backup->recv_message->size;
 
-    int ret = chdir(dir);
+    char *d = malloc(sizeof(char) * size + 1);
+    d[size] = '\0';
+    memcpy(d, dir, size);
+
+    printf("Changing directory to %s\n", d);
+
+    int ret = chdir(d);
 
     if (ret == -1)
         printf("Erro: %s\n", strerror(errno));
