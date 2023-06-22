@@ -354,6 +354,11 @@ ssize_t receive_message(backup_t *backup) {
         if (m->type == ACK || m->type == NACK)
             continue;
 
+        if (m->sequence == backup->sequence - 1) {
+            send_acknowledgement(backup, 1);
+            continue;
+        }
+
         if (
             m->type != RESET_SEQUENCE &&
             m->sequence != backup->sequence
@@ -367,7 +372,7 @@ ssize_t receive_message(backup_t *backup) {
 
         valid_message = check_message_parity(m);
         send_acknowledgement(backup, valid_message);
-        
+
         if (valid_message)
             break; 
     };
