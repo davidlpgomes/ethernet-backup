@@ -26,13 +26,13 @@ int main(int argc, char** argv) {
                 loopback = 1;
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-c] [-s]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-c] [-s] [-l]\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
 
     if (run_mode < 0) {
-        fprintf(stderr, "Usage: %s [-c] [-s]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-c] [-s] [-l]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
    
