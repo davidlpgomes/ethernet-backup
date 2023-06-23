@@ -392,6 +392,7 @@ ssize_t send_message(backup_t *backup) {
 
     ssize_t size;
     int is_ack = 0;
+    int error = -1;
 
     while (!is_ack) {
         size = send(
@@ -401,7 +402,7 @@ ssize_t send_message(backup_t *backup) {
             0
         );
 
-        is_ack = wait_acknowledgement(backup);
+        is_ack = wait_ack_or_error(backup, &error);
 
         #ifdef DEBUG
         printf("[ETHBKP][SNDMSG] Message sent, is_ack=%d\n\n", is_ack);
@@ -416,6 +417,7 @@ ssize_t send_message(backup_t *backup) {
 ssize_t receive_message(backup_t *backup) {
     ssize_t size;
     message_t *m = backup->recv_message;
+    int error = -1;
 
     int valid_message;
 
@@ -447,6 +449,13 @@ ssize_t receive_message(backup_t *backup) {
         #endif
 
         valid_message = check_message_parity(m);
+        
+        error = check_error(m);
+        if (error > -1) {
+            send_error(backup, error);
+            break;
+        }
+        
         send_acknowledgement(backup, valid_message);
 
         if (valid_message)
@@ -461,64 +470,7 @@ ssize_t receive_message(backup_t *backup) {
     return size;
 }
 
-int wait_acknowledgement(backup_t *backup) {
-    if (!backup)
-        return -1;
-
-    #ifdef DEBUG
-    printf("[ETHBKP][WACK] Waiting acknowledgement\n");
-    #endif
-
-    ssize_t size = -1;
-    int is_ack = 0;
-
-    for (;;) {
-        size = recv(
-            backup->socket,
-            backup->recv_buffer,
-            BUFFER_MAX_LEN,
-            0
-        );
-
-        if (size == -1) {
-            #ifdef DEBUG
-            printf(
-                "[ETHBKP][WACK] No message received after timeout: errno=%d\n",
-                errno
-            );
-            #endif
-
-            break;
-        }
-
-        buffer_to_message(backup->recv_buffer, backup->recv_message);
-
-        if (backup->recv_message->start_marker != START_MARKER)
-            continue;
-
-        if (
-            backup->recv_message->type != ACK &&
-            backup->recv_message->type != NACK
-        )
-            continue;
-
-        #ifdef DEBUG
-        printf(
-            "[ETHBKP][WACK] Received %s\n",
-            backup->recv_message->type == ACK ? "ACK" : "NACK"
-        );
-        #endif
-
-        if (backup->recv_message->type == ACK)
-            is_ack = 1;
-
-        break;
-    }
-
-    return is_ack;
-}
-
-int wait_ack_or_error(backup_t *backup) {
+int wait_ack_or_error(backup_t *backup, int *error) {
     if (!backup)
         return -1;
 
@@ -554,7 +506,8 @@ int wait_ack_or_error(backup_t *backup) {
             continue;
 
         if (backup->recv_message->type == ERROR) {
-            is_ack == backup->recv_message->data[0];
+            memcpy(error, backup->recv_message->data, sizeof(int));
+            is_ack = 2;
             break;
         }
 
@@ -815,6 +768,8 @@ void retrieve_file(backup_t *backup, char *file_name) {
 }
 
 void retrieve_files(backup_t *backup) {
+    int received_files = 0;
+
     if (!backup)
         return;
 
@@ -823,12 +778,17 @@ void retrieve_files(backup_t *backup) {
         size = receive_message(backup);
 
         if (!size) {
-            fprintf(stderr, "Retrieve files - SIZE is invalid!");
+            fprintf(stderr, "Retrieve files - SIZE is invalid!\n");
         }
 
         if (backup->recv_message->type == END_FILES)
+            if (!received_files) {
+                printf("Nenhum arquivo seguindo o padrão foi encontrado no servidor\n")
+            }
             break;
 
+        
+        received_files = 1;
         receive_file(
             backup,
             (char*) backup->recv_message->data,
@@ -914,6 +874,47 @@ int check_message_parity(message_t *message) {
     free(buffer);
 
     return parity;
+}
+
+int check_error(message_t *message) {
+    int error = -1
+    message_type_e t = message->type;
+
+    if ( 
+        t == RETRIEVE_FILE ||
+        t == DEFINE_BACKUP_DIRECTORY ||
+        t == CHECK_BACKUP
+    ) {
+        char *path = malloc(sizeof(char) * message->size + 1);
+        test_alloc(path, "check_error path");
+
+        d[message->size] = '\0';
+        memcpy(d, message->data, message->size);
+        if (access(path, F_OK) != -1)
+            error = 2;
+        
+        free(path);
+
+        return error;
+    }
+}
+
+void send_error(backup_t *backup, eth_error_e error) {
+    if (!backup)
+        return;
+
+    message_t *m = backup->send_message;
+
+    message_reset(m);
+    m->size = sizeof(int);
+    m->type = ERROR;
+
+    m->data = malloc(sizeof(int));
+    test_alloc(m->data, "send_error message");
+
+    memcpy(m->data, &error, sizeof(int));
+
+    return;
 }
 
 int check_parity(unsigned char* buffer, int buffer_size) {

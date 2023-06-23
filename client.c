@@ -216,6 +216,11 @@ void client_retrieve(backup_t *backup, char *file_name) {
         exit(1);
     }
 
+    if (backup->send_message->type == ERROR) {
+        printf("Arquivo não encontrado no servidor\n");
+        return;
+    }
+
     if (is_wildcard)
         retrieve_files(backup);
     else
@@ -232,17 +237,26 @@ void client_check(backup_t *backup, char *file_name) {
     if (!backup || !file_name)
         return;
 
+    if (access(file_name, F_OK) == -1) {
+        printf("Arquivo não encontrado\n");
+        return;
+    }
+
     unsigned char *out = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
     test_alloc(out, "client check cache");
 
     get_file_md5(out, file_name);
 
-    make_md5_message(backup, file_name);
+    make_check_message(backup, file_name);
     send_message(backup);
 
     receive_message(backup);
 
     message_t *m = backup->recv_message;
+
+    if (m->type == ERROR) {
+        printf("Arquivo não encontrado no servidor\n");
+    }
     
     if (!strncmp((char *) out, (char *) m->data, m->size))
         printf("O arquivo %s está integro no backup\n", file_name);
@@ -254,7 +268,7 @@ void client_check(backup_t *backup, char *file_name) {
     return;
 }
 
-void make_md5_message(backup_t *backup, char *file_name) {
+void make_check_message(backup_t *backup, char *file_name) {
     if (!backup || !file_name)
         return;
 
@@ -265,7 +279,7 @@ void make_md5_message(backup_t *backup, char *file_name) {
 
     m->size = name_len;
     m->sequence = backup->sequence;
-    m->type = MD5_FILE;
+    m->type = CHECK_BACKUP;
 
     m->data = malloc(sizeof(unsigned char) * name_len);
     test_alloc(m->data, "backup message file name");
@@ -288,6 +302,9 @@ void client_define_backup_dir(backup_t *backup, char *dir) {
 
     make_backup_directory_message(backup, dir);
     ssize_t size = send_message(backup);
+
+    if (backup->send_message->type == ERROR)
+        printf("O diretório não existe no servidor\n");
 
     if (size < 0)
         printf("Error: %s\n", strerror(errno));

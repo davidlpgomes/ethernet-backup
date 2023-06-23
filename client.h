@@ -34,7 +34,7 @@ void client_change_directory(char *dir);
 
 void client_list_directory(char *dir);
 
-void make_md5_message(backup_t *backup, char *file_name);
+void make_check_message(backup_t *backup, char *file_name);
 
 void client_help();
 

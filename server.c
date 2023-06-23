@@ -240,7 +240,7 @@ void server_send_md5(backup_t *backup, char *file_name) {
 
     get_file_md5(out, f);
 
-    make_md5_response(backup, out);
+    make_md5_message(backup, out);
     send_message(backup);
 
     free(out);
@@ -249,7 +249,7 @@ void server_send_md5(backup_t *backup, char *file_name) {
     return;
 }
 
-void make_md5_response(backup_t *backup, unsigned char *md5_str) {
+void make_md5_message(backup_t *backup, unsigned char *md5_str) {
     if (!backup || !md5_str)
         return;
 

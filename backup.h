@@ -104,9 +104,7 @@ ssize_t send_message(backup_t *backup);
 
 ssize_t receive_message(backup_t *backup);
 
-int wait_acknowledgement(backup_t *backup);
-
-int wait_ack_or_error(backup_t *backup); 
+int wait_ack_or_error(backup_t *backup, int *error); 
 
 void message_to_buffer(message_t *message, unsigned char *buffer);
 
@@ -131,6 +129,10 @@ void get_file_md5(unsigned char *out, char *file_name);
 void set_message_parity(message_t *message);
 
 int check_message_parity(message_t *message);
+
+int check_error(message_t *message);
+
+void send_error(backup_t *backup, eth_error_e error); 
 
 int check_parity(unsigned char *buffer, int buffer_size);
 
