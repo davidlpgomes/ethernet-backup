@@ -587,7 +587,7 @@ void backup_files(backup_t *backup, char *pattern) {
 
     if (ret) {
         if (ret == GLOB_NOMATCH)
-            printf("Nenhum arquivo encontrado\n");
+            printf("No files found\n");
         else
             printf("Erro: glob %s\n", strerror(errno));
 
@@ -598,12 +598,12 @@ void backup_files(backup_t *backup, char *pattern) {
 
     if (files > 1) {
         make_num_of_files_message(backup, files);
-        ssize_t size = send_message(backup);
+        send_message(backup);
     }
 
     char **file = globe.gl_pathv;
     while (*file) {
-        printf("Enviando arquivo %s...\n", *file);
+        printf("Sending file %s...\n", *file);
         send_file_with_name(backup, *file);
 
         file++;
@@ -611,7 +611,7 @@ void backup_files(backup_t *backup, char *pattern) {
 
     if (files > 1) {
         make_end_files_message(backup);
-        ssize_t size = send_message(backup);
+        send_message(backup);
     }
 
     globfree(&globe);
@@ -626,7 +626,7 @@ void send_file(backup_t *backup, char *path) {
     FILE *file = fopen(path, "rb");
 
     if (!file) {
-        fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));
+        fprintf(stderr, "Error: %s\n", strerror(errno));
         return;
     }
 
@@ -685,14 +685,14 @@ void receive_files(backup_t *backup, unsigned num_files) {
     if (!backup)
         return;
 
-    printf("Recebendo %u arquivos\n", num_files);
+    printf("Receiving %u files\n", num_files);
 
     ssize_t size;
-    for (int i = 0; i < num_files; i++) {
+    for (unsigned i = 0; i < num_files; i++) {
         size = receive_message(backup);
 
         if (!size) {
-            fprintf(stderr, "Receive files - SIZE is invalid!");
+            fprintf(stderr, "Error on receive_files: %s\n", strerror(errno));
             exit(1);
         }
 
@@ -704,7 +704,7 @@ void receive_files(backup_t *backup, unsigned num_files) {
     }
 
     size = receive_message(backup);
-    printf("Fim do grupo de arquivos\n");
+    printf("End of file group\n");
 
     return;
 }
@@ -719,14 +719,14 @@ void receive_file(backup_t *backup, char *file_name, unsigned file_name_size) {
     f[file_name_size] = '\0';
     memcpy(f, file_name, file_name_size);
 
-    printf("Salvando arquivo %s\n", f);
+    printf("Saving file %s\n", f);
 
     FILE *file = fopen(f, "wb");
 
     free(f);
 
     if (!file) {
-        fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));
+        fprintf(stderr, "Error on opening file: %s\n", strerror(errno));
         return;
     }
 
@@ -778,15 +778,15 @@ void retrieve_files(backup_t *backup) {
         size = receive_message(backup);
 
         if (!size) {
-            fprintf(stderr, "Retrieve files - SIZE is invalid!\n");
+            fprintf(stderr, "Error: %s\n", strerror(errno));
         }
 
-        if (backup->recv_message->type == END_FILES)
-            if (!received_files) {
-                printf("Nenhum arquivo seguindo o padrão foi encontrado no servidor\n")
-            }
-            break;
+        if (backup->recv_message->type == END_FILES) {
+            if (!received_files)
+                printf("No files match pattern on server\n");
 
+            break;
+        }
         
         received_files = 1;
         receive_file(
@@ -806,11 +806,10 @@ void get_file_md5(unsigned char *out, char *file_name) {
     FILE *file = fopen(file_name, "rb");
 
     if (!file) {
-        fprintf(stderr, "Erro ao abrir arquivo: %s\n", strerror(errno));
+        fprintf(stderr, "Error on opening file: %s\n", strerror(errno));
         return;
     }
 
-    int buffer_size = DATA_MAX_LEN;
     unsigned char *buffer = malloc(sizeof(unsigned char) * DATA_MAX_LEN);
     test_alloc(buffer, "MD5 file buffer");
 
@@ -877,26 +876,28 @@ int check_message_parity(message_t *message) {
 }
 
 int check_error(message_t *message) {
-    int error = -1
+    int error = -1;
     message_type_e t = message->type;
 
-    if ( 
-        t == RETRIEVE_FILE ||
-        t == DEFINE_BACKUP_DIRECTORY ||
-        t == CHECK_BACKUP
-    ) {
-        char *path = malloc(sizeof(char) * message->size + 1);
-        test_alloc(path, "check_error path");
-
-        d[message->size] = '\0';
-        memcpy(d, message->data, message->size);
-        if (access(path, F_OK) != -1)
-            error = 2;
-        
-        free(path);
-
+    if (
+        t != RETRIEVE_FILE &&
+        t != DEFINE_BACKUP_DIRECTORY &&
+        t != CHECK_BACKUP
+    )
         return error;
-    }
+
+    char *path = malloc(sizeof(char) * message->size + 1);
+    test_alloc(path, "check_error path");
+
+    path[message->size] = '\0';
+    memcpy(path, message->data, message->size);
+
+    if (access(path, F_OK))
+        error = 2;
+        
+    free(path);
+
+    return error;
 }
 
 void send_error(backup_t *backup, eth_error_e error) {
@@ -913,6 +914,9 @@ void send_error(backup_t *backup, eth_error_e error) {
     test_alloc(m->data, "send_error message");
 
     memcpy(m->data, &error, sizeof(int));
+
+    message_to_buffer(m, backup->send_buffer);
+    send(backup->socket, backup->send_buffer, BUFFER_MAX_LEN, 0);
 
     return;
 }

@@ -22,7 +22,6 @@ void server_run(int loopback) {
     #endif
 
     backup_t *backup = create_backup(loopback);
-    message_t *m = backup->recv_message;
     ssize_t size;
 
     char *cwd = malloc(sizeof(char) * PATH_MAX);
@@ -33,6 +32,11 @@ void server_run(int loopback) {
         printf("[%s] Waiting message\n", cwd);
 
         size = receive_message(backup);
+
+        if (!size) {
+            fprintf(stderr, "Error on server: %s\n", strerror(errno));
+            exit(1);
+        }
 
         switch (backup->recv_message->type) {
             case BACKUP_FILE:
@@ -56,7 +60,7 @@ void server_run(int loopback) {
                     (char*) backup->recv_message->data
                 );
                 break;
-            case MD5_FILE:
+            case CHECK_BACKUP:
                 server_send_md5(backup, (char *) backup->recv_message->data);
                 break;
             default:
@@ -98,8 +102,6 @@ void server_backup(backup_t *backup, char *file_name) {
     if (!backup || !file_name)
         return;
 
-    //TODO: Check permissions
-
     receive_file(backup, file_name, backup->recv_message->size);
 
     return;
@@ -126,8 +128,25 @@ void server_retrieve(backup_t *backup, char *file_name) {
     if (!backup || !file_name)
         return;
 
-    printf("Enviando arquivo: %s\n", file_name);
-    send_file(backup, file_name);
+    int size = backup->recv_message->size;
+
+    char *name = malloc(sizeof(char) * (size + 1));
+    test_alloc(name, "server_retrieve file name");
+
+    name[size] = '\0';
+    memcpy(name, file_name, size);
+
+    if (access(name, F_OK)) {
+        printf("File %s does not exist, aborting retrieve\n", name);
+        free(name);
+
+        return;
+    }
+
+    printf("Sending file: %s\n", name);
+    send_file(backup, name);
+
+    free(name);
 
     return;
 }
@@ -140,40 +159,57 @@ void server_retrieve_files(backup_t *backup, char *pattern) {
     if (!backup || !pattern)
         return;
 
+    int p_size = backup->recv_message->size;
+
+    char *p = malloc(sizeof(char) * (p_size + 1));
+    test_alloc(p, "server_retrieve_files p");
+
+    p[p_size] = '\0';
+    memcpy(p, pattern, p_size);
+
     glob_t globe;
 
-    printf("Buscando arquivos com o padrão %s\n", pattern);
+    printf("Checking files that match the pattern %s\n", p);
 
-    int ret = glob(pattern, GLOB_ERR | GLOB_TILDE, NULL, &globe);
+    int ret = glob(p, GLOB_ERR | GLOB_TILDE, NULL, &globe);
 
     if (ret) {
         if (ret == GLOB_NOMATCH)
-            printf("Nenhum arquivo encontrado\n");
+            printf("No files found\n");
         else
             printf("Erro: glob %s\n", strerror(errno));
+
+        make_end_files_message(backup);
+        send_message(backup);
+
+        free(p);
 
         return;
     }
 
     ssize_t size;
 
-    size_t files = globe.gl_pathc;
     char **file = globe.gl_pathv;
 
+    size_t files = globe.gl_pathc;
+    unsigned i = 1;
+
     while (*file) {
-        printf("Enviando arquivo %s...\n", *file);
+        printf("Sending file (%d/%lu) %s...\n", i, files, *file);
 
         make_retrieve_file_name_message(backup, *file);
         size = send_message(backup);
 
         if (size < 0) {
             fprintf(stderr, "Error: %s\n", strerror(errno));
+            free(p);
             return;
         }
 
         send_file(backup, *file);
 
         file++;
+        i++;
     }
 
     make_end_files_message(backup);
@@ -181,10 +217,12 @@ void server_retrieve_files(backup_t *backup, char *pattern) {
 
     if (size < 0) {
         fprintf(stderr, "Error: %s\n", strerror(errno));
+        free(p);
         return;
     }
 
     globfree(&globe);
+    free(p);
 
     return;
 }
@@ -204,6 +242,12 @@ void server_define_backup_directory(backup_t *backup, char *dir) {
 
     d[size] = '\0';
     memcpy(d, dir, size);
+
+    if (access(d, F_OK)) {
+        printf("Directory %s does not exist, aborting\n", d);
+        free(d);
+        return;
+    }
 
     printf("Changing directory to %s\n", d);
 
@@ -233,7 +277,13 @@ void server_send_md5(backup_t *backup, char *file_name) {
     f[size] = '\0';
     memcpy(f, file_name, size);
 
-    printf("Generating md5 for %s\n", f);
+    if (access(f, F_OK)) {
+        printf("File %s does not exist\n", f);
+        free(f);
+        return;
+    }
+
+    printf("Generating MD5 for %s\n", f);
 
     unsigned char *out = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
     test_alloc(out, "server md5 cache");

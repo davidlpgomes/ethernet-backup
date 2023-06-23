@@ -47,12 +47,12 @@ void client_run(int loopback) {
         cmd_type = parse_command(command, arg, &arg_size);
 
         if (arg_size > DATA_MAX_LEN) {
-            printf("Tamanho do argumento inválido\n");
+            printf("Invalid argument length\n");
             continue;
         }
 
         if (cmd_type == C_EXIT) {
-            printf("\nSaindo, até logo!\n");
+            printf("\nExiting, see ya!\n");
             break;
         }
 
@@ -79,7 +79,7 @@ void client_run(int loopback) {
                 client_help();
                 break;
             case C_INVALID:
-                printf("Comando inválido\n");
+                printf("Invalid command\n");
                 break;
             default:
                 continue;
@@ -175,18 +175,6 @@ void client_backup(backup_t* backup, char *path) {
     printf("[ETHBKP] Command: backup\n");
     #endif
 
-    /*
-    if (access(path, F_OK)) {
-        printf("Erro: arquivo não existe\n"); 
-        return;
-    }
-
-    if (access(path, R_OK)) {
-        printf("Erro: você não tem permissão para ler esse arquivo\n");
-        return;
-    }
-    */
-
     backup_files(backup, path);
 
     return;
@@ -216,8 +204,8 @@ void client_retrieve(backup_t *backup, char *file_name) {
         exit(1);
     }
 
-    if (backup->send_message->type == ERROR) {
-        printf("Arquivo não encontrado no servidor\n");
+    if (backup->recv_message->type == ERROR) {
+        printf("File not found on server\n");
         return;
     }
 
@@ -238,7 +226,7 @@ void client_check(backup_t *backup, char *file_name) {
         return;
 
     if (access(file_name, F_OK) == -1) {
-        printf("Arquivo não encontrado\n");
+        printf("File %s does not exist\n", file_name);
         return;
     }
 
@@ -250,18 +238,22 @@ void client_check(backup_t *backup, char *file_name) {
     make_check_message(backup, file_name);
     send_message(backup);
 
-    receive_message(backup);
-
-    message_t *m = backup->recv_message;
-
-    if (m->type == ERROR) {
-        printf("Arquivo não encontrado no servidor\n");
+    if (backup->recv_message->type == ERROR) {
+        printf("File not found on server\n");
+        free(out);
+        return;
     }
+
+    receive_message(backup);
+    message_t *m = backup->recv_message;
     
     if (!strncmp((char *) out, (char *) m->data, m->size))
-        printf("O arquivo %s está integro no backup\n", file_name);
+        printf("File's (%s) hashes are the SAME\n", file_name);
     else
-        printf("O arquivo %s foi corrompido\n", file_name);
+        printf(
+            "File's (%s) hashes are DIFFERENTE, the file is corrupted!\n",
+            file_name
+        );
 
     free(out);
 
@@ -303,8 +295,8 @@ void client_define_backup_dir(backup_t *backup, char *dir) {
     make_backup_directory_message(backup, dir);
     ssize_t size = send_message(backup);
 
-    if (backup->send_message->type == ERROR)
-        printf("O diretório não existe no servidor\n");
+    if (backup->recv_message->type == ERROR)
+        printf("The directory does not exist on server\n");
 
     if (size < 0)
         printf("Error: %s\n", strerror(errno));
@@ -318,14 +310,19 @@ void client_change_directory(char *dir) {
     #endif
 
     if (!dir) {
-        printf("Erro: diretório inválido\n");
+        printf("Error: invalid directory\n");
+        return;
+    }
+
+    if (access(dir, F_OK)) {
+        printf("Invalid directory");
         return;
     }
 
     int ret = chdir(dir);
 
     if (ret == -1)
-        printf("Erro: %s\n", strerror(errno));
+        printf("Error on chdir: %s\n", strerror(errno));
 
     return;
 }
@@ -342,7 +339,7 @@ void client_list_directory(char *dir) {
     else
         realpath(dir, path);
 
-    printf("Conteúdo do diretório %s:\n", path);
+    printf("Directory's content %s:\n", path);
 
     DIR *dirstream;
     struct dirent *direntry;
@@ -350,7 +347,7 @@ void client_list_directory(char *dir) {
     dirstream = opendir(path);
 
     if (!dirstream) {
-        printf("Erro: não foi possível abrir o diretório %s\n", path);
+        printf("Error: could not open directory %s\n", path);
         return;
     }
 
@@ -386,16 +383,16 @@ void client_help() {
     printf("[ETHBKP] Command: help\n");
     #endif
 
-    printf("Bem-vindo ao Ethernet Backup!\n");
-    printf("Comandos:\n");
-    printf("  backup, bkp, b <arquivo>     Faz o backup do arquivo para o servidor\n");
-    printf("  retrieve, rtv, r <arquivo>   Recupera arquivo do servidor\n");
-    printf("  check, chk, c <arquivo>      Verifica o MD5 de um arquivo com o backup\n");
-    printf("  dfd                          Define o diretório de backup no servidor\n");
-    printf("  cd                           Muda o diretório local\n");
-    printf("  ls                           Lista o conteúdo do working directory\n");
-    printf("  help                         Mostra uma lista de comandos\n");
-    printf("  exit                         Sair do Ethernet Backup\n");
+    printf("Welcome to the Ethernet Backup!\n");
+    printf("Commands:\n");
+    printf("  backup, bkp, b <file>     Backups the file to the server\n");
+    printf("  retrieve, rtv, r <file>   Retrieves file from server\n");
+    printf("  check, chk, c <file>      Checks if the file's hashes match\n");
+    printf("  dfd                       Defines the backup directory on server\n");
+    printf("  cd                        Changes the local working directory\n");
+    printf("  ls                        Lists the working directory's content\n");
+    printf("  help                      Shows list of commands\n");
+    printf("  exit                      Exit\n");
 
     return;
 }

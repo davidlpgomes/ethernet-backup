@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra
+CFLAGS = -Wall -Wextra -Wno-deprecated-declarations
 LFLAGS = -lcrypto 
 
 PROG = backup

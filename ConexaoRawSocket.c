@@ -24,7 +24,7 @@ int ConexaoRawSocket(char *device)
   }
 
   memset(&ir, 0, sizeof(struct ifreq));  	/*dispositivo eth0*/
-  memcpy(ir.ifr_name, device, sizeof(device));
+  memcpy(ir.ifr_name, device, strlen(device));
   if (ioctl(soquete, SIOCGIFINDEX, &ir) == -1) {
     printf("Erro no ioctl\n");
     exit(-1);
@@ -34,7 +34,7 @@ int ConexaoRawSocket(char *device)
   memset(&endereco, 0, sizeof(endereco)); 	/*IP do dispositivo*/
   endereco.sll_family = AF_PACKET;
   endereco.sll_protocol = htons(ETH_P_ALL);
-  endereco.sll_ifindex = ir.ifr_ifindex; // 2
+  endereco.sll_ifindex = ir.ifr_ifindex;
   if (bind(soquete, (struct sockaddr *)&endereco, sizeof(endereco)) == -1) {
     printf("Erro no bind\n");
     exit(-1);
