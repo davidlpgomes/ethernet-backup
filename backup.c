@@ -643,14 +643,33 @@ void send_file(backup_t *backup, char *path) {
             break;
 
         for (int i = 0; i < data_size - 1; i++) {
-            if (data[i] == 0b10000001 || data[i] == '/') {
-                int aux1 = data[i];
-                data[i] = '/';
-                data[i+1] = aux1 == 0b10000001 ? 0b00000001 : '/';
-                for (int j = i+1; j < data_size; j++) {
-                    int aux2 = data[j];
-                    data[j] = aux1;
-                    aux1 = aux2;
+            if (data[i] == 0b10000001 || data[i] == 0b11111111 || data[i] == 0b10001000) {
+                int aux = data[i+1];
+                switch (data[i])
+                {
+                case 0b10000001:
+                    data[i+1] = 1; 
+                    break;
+
+                case 0b10001000:
+                    data[i+1] = 8;
+                    break;
+
+                case 0b11111111:
+                    data[i+1] = 0b11111111;
+                    break;
+                
+                default:
+                    break;
+                }
+
+                data[i] = 0b11111111;
+
+                int aux2;
+                for (int j = i+2; j < data_size; j++) {
+                    aux2 = data[j];
+                    data[j] = aux;
+                    aux = aux2;
                 }
 
                 i++;
@@ -658,7 +677,7 @@ void send_file(backup_t *backup, char *path) {
             }
         }
 
-        if (data[data_size-1] == 0b10000001 || data[data_size-1] == '/') {
+        if (data[data_size-1] == 0b10000001 || data[data_size-1] == 0b11111111 || data[data_size-1] == 0b10001000) {
             fseek(file, -1, SEEK_CUR);
             data_size--;
         }
@@ -764,9 +783,11 @@ void receive_file(backup_t *backup, char *file_name, unsigned file_name_size) {
         memcpy(data, backup->recv_message->data, data_size);
 
         for (int i = 0; i < data_size-1; i++) {
-            if (data[i] == '/') {
-                if (data[i+1] == 0b00000001)
+            if (data[i] == 0b11111111) {
+                if (data[i+1] == 1)
                     data[i] = 0b10000001;
+                if (data[i+1] == 8)
+                    data[i] = 0b10001000;
                 
                 for (int j = i+1; j < data_size - 1; j++) {
                     data[j] = data[j+1];
