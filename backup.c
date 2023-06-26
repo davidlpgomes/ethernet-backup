@@ -631,18 +631,39 @@ void send_file(backup_t *backup, char *path) {
     }
 
     // Send file data
-    int buffer_size = DATA_MAX_LEN;
-    unsigned char *buffer = malloc(sizeof(unsigned char) * DATA_MAX_LEN);
-    test_alloc(buffer, "client backup file buffer");
+    int data_size = DATA_MAX_LEN;
+    unsigned char *data = malloc(sizeof(unsigned char) * DATA_MAX_LEN);
+    test_alloc(data, "client backup file data");
 
     ssize_t size_data;
     while (!feof(file)) {
-        buffer_size = fread(buffer, sizeof(*buffer), DATA_MAX_LEN, file);
+        data_size = fread(data, sizeof(*data), DATA_MAX_LEN, file);
 
-        if (!buffer_size)
+        if (!data_size)
             break;
 
-        make_data_message(backup, buffer, buffer_size);
+        for (int i = 0; i < data_size - 1; i++) {
+            if (data[i] == 0b10000001 || data[i] == '/') {
+                int aux1 = data[i];
+                data[i] = '/';
+                data[i+1] = aux1 == 0b10000001 ? 0b00000001 : '/';
+                for (int j = i+1; j < data_size; j++) {
+                    int aux2 = data[j];
+                    data[j] = aux1;
+                    aux1 = aux2;
+                }
+
+                i++;
+                fseek(file, -1, SEEK_CUR);
+            }
+        }
+
+        if (data[data_size-1] == 0b10000001 || data[data_size-1] == '/') {
+            fseek(file, -1, SEEK_CUR);
+            data_size--;
+        }
+
+        make_data_message(backup, data, data_size);
         size_data = send_message(backup);
 
         if (size_data < 0)
@@ -737,11 +758,29 @@ void receive_file(backup_t *backup, char *file_name, unsigned file_name_size) {
         return;
     }
 
+    unsigned char *data = malloc(DATA_MAX_LEN);
     while (backup->recv_message->type == DATA) {
+        int data_size = backup->recv_message->size;
+        memcpy(data, backup->recv_message->data, data_size);
+
+        for (int i = 0; i < data_size-1; i++) {
+            if (data[i] == '/') {
+                if (data[i+1] == 0b00000001)
+                    data[i] = 0b10000001;
+                
+                for (int j = i+1; j < data_size - 1; j++) {
+                    data[j] = data[j+1];
+                }
+
+                data_size--;
+            }
+        }
+
+
         fwrite(
-            backup->recv_message->data,
+            data,
             sizeof(*backup->recv_message->data),
-            backup->recv_message->size,
+            data_size,
             file
         );
          
@@ -752,6 +791,7 @@ void receive_file(backup_t *backup, char *file_name, unsigned file_name_size) {
             return;
         }
     }
+    free(data);
 
     fclose(file);
 
