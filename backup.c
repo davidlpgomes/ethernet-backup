@@ -635,6 +635,8 @@ void send_file(backup_t *backup, char *path) {
     unsigned char *data = malloc(sizeof(unsigned char) * DATA_MAX_LEN);
     test_alloc(data, "client backup file data");
 
+    unsigned char aux, aux2;
+
     ssize_t size_data;
     while (!feof(file)) {
         data_size = fread(data, sizeof(*data), DATA_MAX_LEN, file);
@@ -643,43 +645,38 @@ void send_file(backup_t *backup, char *path) {
             break;
 
         for (int i = 0; i < data_size - 1; i++) {
-            if (data[i] == 0b10000001 || data[i] == 0b11111111 || data[i] == 0b10001000) {
-                int aux = data[i+1];
-                switch (data[i])
-                {
-                case 0b10000001:
-                    data[i+1] = 1; 
-                    break;
+            if (
+                data[i] == 0b10000001 || // 0x81
+                data[i] == 0b10001000 || // 0x88
+                data[i] == 0b11111111    // 0xff
+            ) {
+                aux = data[i + 1];
 
-                case 0b10001000:
-                    data[i+1] = 8;
-                    break;
-
-                case 0b11111111:
-                    data[i+1] = 0b11111111;
-                    break;
-                
-                default:
-                    break;
+                switch (data[i]) {
+                    case 0b10000001:
+                        data[i + 1] = 0b00000001; 
+                        break;
+                    case 0b10001000:
+                        data[i + 1] = 0b00000011;
+                        break;
+                    case 0b11111111:
+                        data[i + 1] = 0b11111111;
+                        break;
+                    default:
+                        break;
                 }
 
                 data[i] = 0b11111111;
 
-                int aux2;
-                for (int j = i+2; j < data_size; j++) {
+                for (int j = i + 2; j < data_size; j++) {
                     aux2 = data[j];
                     data[j] = aux;
                     aux = aux2;
                 }
 
-                i++;
                 fseek(file, -1, SEEK_CUR);
+                i++;
             }
-        }
-
-        if (data[data_size-1] == 0b10000001 || data[data_size-1] == 0b11111111 || data[data_size-1] == 0b10001000) {
-            fseek(file, -1, SEEK_CUR);
-            data_size--;
         }
 
         make_data_message(backup, data, data_size);
@@ -777,26 +774,28 @@ void receive_file(backup_t *backup, char *file_name, unsigned file_name_size) {
         return;
     }
 
+    int data_size;
     unsigned char *data = malloc(DATA_MAX_LEN);
+    test_alloc(data, "receive_file data buffer");
+
     while (backup->recv_message->type == DATA) {
-        int data_size = backup->recv_message->size;
+        data_size = backup->recv_message->size;
         memcpy(data, backup->recv_message->data, data_size);
 
-        for (int i = 0; i < data_size-1; i++) {
+        for (int i = 0; i < data_size - 1; i++) {
             if (data[i] == 0b11111111) {
-                if (data[i+1] == 1)
+                if (data[i + 1] == 0b00000001)
                     data[i] = 0b10000001;
-                if (data[i+1] == 8)
+
+                if (data[i + 1] == 0b00000011)
                     data[i] = 0b10001000;
                 
-                for (int j = i+1; j < data_size - 1; j++) {
-                    data[j] = data[j+1];
-                }
+                for (int j = i + 1; j < data_size - 1; j++)
+                    data[j] = data[j + 1];
 
                 data_size--;
             }
         }
-
 
         fwrite(
             data,
@@ -812,6 +811,7 @@ void receive_file(backup_t *backup, char *file_name, unsigned file_name_size) {
             return;
         }
     }
+
     free(data);
 
     fclose(file);
