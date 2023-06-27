@@ -65,7 +65,7 @@ void print_message(message_t *message) {
         printf("\n");
     }
 
-    printf("parity: %c\n", message->parity);
+    printf("parity: %c (%d)\n", message->parity, message->parity);
 
     return;
 }
